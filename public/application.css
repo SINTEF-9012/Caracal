@@ -1,0 +1,117 @@
+body {
+	background:white url(squairy_light.png) repeat;
+}
+
+.dragover .dragarea {
+	box-shadow:0 0 100px #3E647E;
+	border-color:#051039;
+}
+
+.dragarea {
+	text-align:center;
+	padding-top:40px;
+	background: url(use_your_illusion.png);
+	border-color: black;
+	color:white;
+	border-radius: 0;
+	transition:box-shadow 0.5s;
+}
+.dragarea:hover {
+	color:white;
+}
+.dragarea:active {
+	background: black;
+}
+
+.dragarea span{
+	font-size:120px;
+}
+
+.dragarea p{
+	padding-top:20px;
+	font-size:20px;
+}
+
+.progress {
+	transition:opacity 0.5s;
+	-webkit-transition:opacity 0.5s;
+	-moz-transition:opacity 0.5s;
+}
+.nothing-to-show {
+	opacity:0;
+}
+
+#files p {
+
+}
+
+#list .details {
+	text-align: right;
+} 
+
+#list {
+	margin-top:20px;
+	margin-bottom:15px;
+}
+
+#list .row {
+	margin-bottom:0px;
+}
+
+#list .row:hover {
+	background: rgba(255,255,255,0.5);
+}
+
+#list a {
+	/*display: block;*/
+	height:96px;
+}
+#list .icon {
+	padding-left:0;
+}
+
+#list .icon img {
+	display: block;
+	width:96px;
+	height:96px;
+}
+
+#list .icon .glyphicon {
+	padding-left:18px;
+	line-height: 96px;
+	font-size:70px;
+}
+
+#list .name {
+	color: #555555;
+	padding-top: 37px;
+	font-family: monospace;
+	text-overflow:ellipsis;
+	word-wrap: break-word;
+	overflow: hidden;
+	max-height: 96px;
+}
+
+#list .details button.btn-xs {
+	text-align: right;
+	padding-right: 0;
+}
+
+@media (max-width: 260px) {
+	#list a {
+		height: auto;
+	}
+
+	#list .details {
+		display: none;
+	}
+
+	#list .icon {
+		width:100%;
+		padding:0;
+	}
+	#list .icon img {
+		width:100%;
+		height:auto;
+	}
+}

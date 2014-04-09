@@ -1,4 +1,4 @@
 public/bower_components
-npm_modules
+node_modules
 files.db
 picturesSizes.db

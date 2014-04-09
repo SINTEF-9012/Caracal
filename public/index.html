@@ -14,9 +14,20 @@
 		<div class="btn col-xs-12 col-sm-8 col-sm-offset-2 dragarea fileinput-button">
 			<span class="glyphicon glyphicon-cloud-upload"></span>
 			<p>Upload some files</p>
-	        <input id="fileupload" type="file" name="file" />
+	        <input id="fileupload" type="file" name="files[]" multiple/>
 		</div>
 	</div>
+    <br>
+    <div class="row">
+        <form action="/fetch" method="get" accept-charset="utf-8">
+        <div class="form-group">
+            <div class="col-xs-11 col-sm-7 col-sm-offset-2">
+                <input type="url" name="url" value="" placeholder="URL" class="form-control">
+            </div>
+            <input type="submit" name="submit" value="Fetch" class="btn btn-primary col-xs-1">
+        </div>
+        </form>
+    </div>
 
     <br>
     <!-- The global progress bar -->

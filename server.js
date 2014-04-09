@@ -77,9 +77,10 @@ app.post('/upload', function(req, res) {
 							type: f.type,
 							name: f.name,
 							mtime: f.lastModifiedDate
+						}, function() {
+							res.send({name: f.name, status: 'ok'});
 						});
 				
-						res.send({name: f.name, status: 'ok'});
 					});
 				}
 			});
@@ -187,7 +188,7 @@ function sendResizedImage(path, width, height, res) {
 	});
 }
 
-function fetchDistantFile(u2, res, callback) {
+function fetchDistantFile(u2, res, callback, reserror) {
 	filesDb.find({url:u2}, function(err, docs) {
 		if (docs.length) {
 			var file = docs[0];
@@ -245,34 +246,36 @@ function fetchDistantFile(u2, res, callback) {
 						if (exists) {
 							// Just remove the temporary file, we don't need it
 							fs.unlink(temppath);
-							if (callback) {
-								callback(path, hash, extension);
-							}
 						} else {
-							fs.rename(temppath, path, function() {
-								if (callback) {
-									callback(path, hash, extension);
-								}
-							});
+							fs.rename(temppath, path);
 						}
 					});
 
+					var name = u2.match(/[^\/]*$/)[0];
+					if (!name) {
+						name = "untitled";
+					}
+					
 					filesDb.insert({
 						size: size,
 						hash: hash,
 						extension: extension,
 						type: type,
-						name: u2.match(/[^\/]*$/)[0],
+						name: name,
 						url: u2, 
 						mtime: new Date()
+					}, function() {
+						if (callback) {
+							callback(path, hash, extension);
+						}
 					});
 				});
 			}).on('error', function(e) {
 				if (res) {
 					res.send(404, e.message);
+				} else if (reserror) {
+					reserror.send(404, e.message);
 				}
-
-				throw new exception(e.message);
 			});
 		}
 	});
@@ -282,12 +285,18 @@ app.get(/^\/(https?:\/\/.+)$/, function(req, res) {
 	fetchDistantFile(req.params[0], res);
 });
 
+app.get(/^\/fetch\/(https?:\/\/.+)$/, function(req, res) {
+	fetchDistantFile(req.params[0], false, function() {
+		res.send("ok");
+	}, res);
+});
+
 app.get(/^\/thumbnail\/(https?:\/\/.+)$/, function(req, res) {
 	var path = req.params[0];
 
 	fetchDistantFile(path, false, function(filepath, hash, extension) {
 		sendThumbnail(hash+"."+extension, res);
-	});
+	}, res);
 });
 
 app.get(/^\/resize\/(\d+)\/(\d+)\/(https?:\/\/.+)$/, function(req, res) {
@@ -297,7 +306,7 @@ app.get(/^\/resize\/(\d+)\/(\d+)\/(https?:\/\/.+)$/, function(req, res) {
 
 	fetchDistantFile(path, false, function(filepath, hash, extension) {
 		sendResizedImage(hash+"."+extension, width, height, res);
-	});
+	}, res);
 });
 
 var server = app.listen(config.port, function() {

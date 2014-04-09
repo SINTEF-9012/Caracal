@@ -210,6 +210,12 @@ function fetchDistantFile(u2, res, callback, reserror) {
 				u.auth = config.auths[u.hostname];
 			}
 
+			u.headers = {
+				'User-Agent': config['User-Agent'],
+				'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+				'Accept-Language': 'fr,en-US;q=0.8,en;q=0.6'
+			};
+
 			(u.protocol === 'https:' ? https : http).get(u, function(httpres) {
 			
 				var type = httpres.headers['content-type'];
@@ -255,7 +261,7 @@ function fetchDistantFile(u2, res, callback, reserror) {
 					if (!name) {
 						name = "untitled";
 					}
-					
+
 					filesDb.insert({
 						size: size,
 						hash: hash,
@@ -281,26 +287,26 @@ function fetchDistantFile(u2, res, callback, reserror) {
 	});
 }
 
-app.get(/^\/(https?:\/\/.+)$/, function(req, res) {
-	fetchDistantFile(req.params[0], res);
+app.get(/^\/https?:\/\/.+$/, function(req, res) {
+	fetchDistantFile(req.url.slice(1), res);
 });
 
-app.get(/^\/fetch\/(https?:\/\/.+)$/, function(req, res) {
-	fetchDistantFile(req.params[0], false, function() {
+app.get(/^\/fetch\/https?:\/\/.+$/, function(req, res) {
+	fetchDistantFile(req.url.slice(7), false, function() {
 		res.send("ok");
 	}, res);
 });
 
-app.get(/^\/thumbnail\/(https?:\/\/.+)$/, function(req, res) {
-	var path = req.params[0];
+app.get(/^\/thumbnail\/https?:\/\/.+$/, function(req, res) {
+	var path = req.url.slice(11);
 
 	fetchDistantFile(path, false, function(filepath, hash, extension) {
 		sendThumbnail(hash+"."+extension, res);
 	}, res);
 });
 
-app.get(/^\/resize\/(\d+)\/(\d+)\/(https?:\/\/.+)$/, function(req, res) {
-	var path = req.params[2],
+app.get(/^\/resize\/(\d+)\/(\d+)\/https?:\/\/.+$/, function(req, res) {
+	var path = req.url.match(/^\/resize\/\d+\/\d+\/(https?:\/\/.+)$/)[1],
 		width = parseInt(req.params[0]),
 		height = parseInt(req.params[1]);
 

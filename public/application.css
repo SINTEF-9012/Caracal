@@ -85,7 +85,6 @@ body {
 #list .name {
 	color: #555555;
 	padding-top: 37px;
-	font-family: monospace;
 	text-overflow:ellipsis;
 	word-wrap: break-word;
 	overflow: hidden;

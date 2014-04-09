@@ -10,6 +10,8 @@ var express = require('express'),
 	gm = require('gm'),
 	Nedb = require('nedb');
 
+var config = require('./config.json');
+
 var filesDb = new Nedb({filename: 'files.db', autoload:true}),
 	picturesSizeDb = new Nedb({filename: 'picturesSizes.db', autoload:true});
 
@@ -28,29 +30,18 @@ app.get('/files', function(req, res) {
 	});
 });
 
-function checkPath(path, res) {
-	if (!/^[a-fA-F0-9]{40}\.\w+$/.test(path)) {
-		res.send(403, "The path doesn't look like a correct path. Sorry");
-		return false;
-	}
-	return true;
-}
-
-app.get('/resize/:width/:height/:path', function(req, res) {
-	var path = req.params.path,
-		width = parseInt(req.params.width),
-		height = parseInt(req.params.height);
+app.get(/^\/resize\/(\d+)\/(\d+)\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
+	var path = req.params[2],
+		width = parseInt(req.params[0]),
+		height = parseInt(req.params[1]);
 	
-	if (!checkPath(path, res)) {
-		return;
-	}
-
 	var resizedPath = "/"+width+"x"+height+"-"+path,
-		fullResizedPath = __dirname + "/uploads"+resizedPath,
-		uploadPath = __dirname + "/uploads/"+path;
+		fullResizedPath = "./uploads"+resizedPath,
+		uploadPath = "./uploads/"+path;
 
 	fs.exists(fullResizedPath, function(exists) {
 		if (exists) {
+			res.header('Cache-Control', config.cache);
 			res.sendfile(fullResizedPath);
 		} else {
 			fs.exists(uploadPath, function(exists) {
@@ -68,6 +59,7 @@ app.get('/resize/:width/:height/:path', function(req, res) {
 
 						picturesSizeDb.insert({unlink: fullResizedPath, path:path});
 
+						res.header('Cache-Control', config.cache);
 						res.sendfile(fullResizedPath);
 				});
 			});
@@ -76,18 +68,15 @@ app.get('/resize/:width/:height/:path', function(req, res) {
 	});
 });
 
-app.get('/thumbnail/:path', function(req, res) {
-	var path = req.params.path;
+app.get(/^\/thumbnail\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
+	var path = req.params[0];
 
-	if (!checkPath(path, res)) {
-		return;
-	}
-
-	var thumbnailPath = __dirname + "/uploads/thumbnail-"+path,
-		uploadPath = __dirname + "/uploads/"+path;
+	var thumbnailPath = "./uploads/thumbnail-"+path,
+		uploadPath = "./uploads/"+path;
 
 	fs.exists(thumbnailPath, function(exists) {
 		if (exists) {
+			res.header('Cache-Control', config.cache);
 			res.sendfile(thumbnailPath);
 		} else {
 			fs.exists(uploadPath, function(exists) {
@@ -103,6 +92,7 @@ app.get('/thumbnail/:path', function(req, res) {
 					}
 
 					picturesSizeDb.insert({unlink: thumbnailPath, path:path});
+					res.header('Cache-Control', config.cache);
 					res.sendfile(thumbnailPath);
 				});
 			});
@@ -112,7 +102,7 @@ app.get('/thumbnail/:path', function(req, res) {
 
 app.post('/upload', function(req, res) {
 	var form = new formidable.IncomingForm();
-	form.uploadDir = __dirname + "/uploads";
+	form.uploadDir = "./uploads";
 	form.keepExtensions = true;
 	form.hash = 'sha1';
 
@@ -128,7 +118,7 @@ app.post('/upload', function(req, res) {
 
 			var extension = mime.extension(f.type);
 
-			var path = __dirname+"/uploads/"+f.hash+"."+extension;
+			var path = "./uploads/"+f.hash+"."+extension;
 
 			fs.exists(path, function(exists) {
 				if (exists) {
@@ -156,14 +146,11 @@ app.post('/upload', function(req, res) {
 	})
 });
 
-app.get('/remove/:path', function(req, res) {
-	var path = req.params.path;
+app.get(/^\/remove\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
+	var path = req.params[0];
 
-	if (!checkPath(path, res)) {
-		return;
-	}
 
-	var	uploadPath = __dirname + "/uploads/"+path;
+	var	uploadPath = "./uploads/"+path;
 
 	fs.unlink(uploadPath);
 
@@ -197,13 +184,18 @@ app.get(/^\/https?:\/\/.+$/, function(req, res) {
 	var u2 = req.url.slice(1),
 		u = url.parse(u2);
 
+
 	filesDb.find({url:u2}, function(err, docs) {
 		if (docs.length) {
 			var file = docs[0];
 
-			var path = __dirname+'/uploads/'+file.hash+'.'+file.extension;
+			var path = './uploads/'+file.hash+'.'+file.extension;
 			res.sendfile(path);
 		} else {
+			if (!u.auth && config.auths[u.hostname]) {
+				u.auth = config.auths[u.hostname];
+			}
+
 			(u.protocol === 'https:' ? https : http).get(u, function(httpres) {
 			res.status(httpres.statusCode);
 			console.log(res);
@@ -230,7 +222,7 @@ app.get(/^\/https?:\/\/.+$/, function(req, res) {
 			httpres.on('end', function() {
 
 				hash = hash.digest('hex');
-				var path = __dirname+'/uploads/'+hash+'.'+extension;
+				var path = './uploads/'+hash+'.'+extension;
 
 				fs.exists(path, function(exists) {
 					if (exists) {
@@ -271,6 +263,6 @@ app.get(/^\/https?:\/\/.+$/, function(req, res) {
 
 });
 
-var server = app.listen(8075, function() {
-	console.log("Server started on http://localhost:8075/");
+var server = app.listen(config.port, function() {
+	console.log("Server started on http://localhost:"+config.port+"/");
 });

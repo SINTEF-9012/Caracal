@@ -1,0 +1,7 @@
+{
+	"port": 8075,
+	"cache": "max-age=290304000, public",
+	"auths": {
+		"auth.example.com": "admin:admin"
+	}
+}

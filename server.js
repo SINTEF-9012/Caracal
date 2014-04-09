@@ -66,7 +66,7 @@ app.post('/upload', function(req, res) {
 			fs.exists(path, function(exists) {
 				if (exists) {
 					fs.unlink(f.path);
-					res.send({name: f.name, status: 'exists'});
+					res.send({name: f.name, status: 'exists', hash: f.hash, extension: extension});
 				} else {
 
 					fs.rename(f.path, path, function() {
@@ -78,12 +78,13 @@ app.post('/upload', function(req, res) {
 							name: f.name,
 							mtime: f.lastModifiedDate
 						}, function() {
-							res.send({name: f.name, status: 'ok'});
+							res.send({name: f.name, status: 'ok', hash: f.hash, extension: extension});
 						});
 				
 					});
 				}
 			});
+			return;
 		};
 
 
@@ -292,8 +293,8 @@ app.get(/^\/https?:\/\/.+$/, function(req, res) {
 });
 
 app.get(/^\/fetch\/https?:\/\/.+$/, function(req, res) {
-	fetchDistantFile(req.url.slice(7), false, function() {
-		res.send("ok");
+	fetchDistantFile(req.url.slice(7), false, function(filepath, hash, extension) {
+		res.send({status: "ok", hash: hash, extension: extension});
 	}, res);
 });
 

@@ -35,69 +35,12 @@ app.get(/^\/resize\/(\d+)\/(\d+)\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(re
 		width = parseInt(req.params[0]),
 		height = parseInt(req.params[1]);
 	
-	var resizedPath = "/"+width+"x"+height+"-"+path,
-		fullResizedPath = "./uploads"+resizedPath,
-		uploadPath = "./uploads/"+path;
-
-	fs.exists(fullResizedPath, function(exists) {
-		if (exists) {
-			res.header('Cache-Control', config.cache);
-			res.sendfile(fullResizedPath);
-		} else {
-			fs.exists(uploadPath, function(exists) {
-				if (!exists) {
-					res.send(404, "File not found, sorry");
-					return;
-				}
-
-				gm(uploadPath).resize(width,height, '>')
-					.noProfile().write(fullResizedPath, function(err) {
-						if (err) {
-							res.send(500, err);
-							return;
-						}
-
-						picturesSizeDb.insert({unlink: fullResizedPath, path:path});
-
-						res.header('Cache-Control', config.cache);
-						res.sendfile(fullResizedPath);
-				});
-			});
-
-		}
-	});
+	sendResizedImage(path, width, height, res);
 });
 
 app.get(/^\/thumbnail\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
 	var path = req.params[0];
-
-	var thumbnailPath = "./uploads/thumbnail-"+path,
-		uploadPath = "./uploads/"+path;
-
-	fs.exists(thumbnailPath, function(exists) {
-		if (exists) {
-			res.header('Cache-Control', config.cache);
-			res.sendfile(thumbnailPath);
-		} else {
-			fs.exists(uploadPath, function(exists) {
-				if (!exists) {
-					res.send(404, "File not found, sorry");
-					return;
-				}
-
-				gm(uploadPath).thumb(128,128,thumbnailPath, 90, function(err) {
-					if (err) {
-						res.send(500, err);
-						return;
-					}
-
-					picturesSizeDb.insert({unlink: thumbnailPath, path:path});
-					res.header('Cache-Control', config.cache);
-					res.sendfile(thumbnailPath);
-				});
-			});
-		}
-	});
+	sendThumbnail(path, res);
 });
 
 app.post('/upload', function(req, res) {
@@ -180,70 +123,140 @@ app.get(/^\/remove\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
 	});
 });
 
-app.get(/^\/https?:\/\/.+$/, function(req, res) {
-	var u2 = req.url.slice(1),
-		u = url.parse(u2);
+function sendThumbnail(path, res) {
+	var thumbnailPath = "./uploads/thumbnail-"+path,
+		uploadPath = "./uploads/"+path;
 
+	fs.exists(thumbnailPath, function(exists) {
+		if (exists) {
+			res.header('Cache-Control', config.cache);
+			res.sendfile(thumbnailPath);
+		} else {
+			fs.exists(uploadPath, function(exists) {
+				if (!exists) {
+					res.send(404, "File not found, sorry");
+					return;
+				}
 
+				gm(uploadPath).thumb(128,128,thumbnailPath, 90, function(err) {
+					if (err) {
+						res.send(500, "Unable to resize the image. Is it really an image ?");
+						return;
+					}
+
+					picturesSizeDb.insert({unlink: thumbnailPath, path:path});
+					res.header('Cache-Control', config.cache);
+					res.sendfile(thumbnailPath);
+				});
+			});
+		}
+	});
+}
+
+function sendResizedImage(path, width, height, res) {
+	var resizedPath = "/"+width+"x"+height+"-"+path,
+		fullResizedPath = "./uploads"+resizedPath,
+		uploadPath = "./uploads/"+path;
+
+	fs.exists(fullResizedPath, function(exists) {
+		if (exists) {
+			res.header('Cache-Control', config.cache);
+			res.sendfile(fullResizedPath);
+		} else {
+			fs.exists(uploadPath, function(exists) {
+				if (!exists) {
+					res.send(404, "File not found, sorry");
+					return;
+				}
+
+				gm(uploadPath).resize(width,height, '>')
+					.noProfile().write(fullResizedPath, function(err) {
+						if (err) {
+							res.send(500, "Unable to resize the image. Is it really an image ?");
+							return;
+						}
+
+						picturesSizeDb.insert({unlink: fullResizedPath, path:path});
+
+						res.header('Cache-Control', config.cache);
+						res.sendfile(fullResizedPath);
+				});
+			});
+
+		}
+	});
+}
+
+function fetchDistantFile(u2, res, callback) {
 	filesDb.find({url:u2}, function(err, docs) {
 		if (docs.length) {
 			var file = docs[0];
 
 			var path = './uploads/'+file.hash+'.'+file.extension;
-			res.sendfile(path);
+		
+			if (res) {
+				res.sendfile(path);
+			}
+
+			if (callback) {
+				callback(path, file.hash, file.extension);
+			}
 		} else {
+
+			var u = url.parse(u2);
+
 			if (!u.auth && config.auths[u.hostname]) {
 				u.auth = config.auths[u.hostname];
 			}
 
 			(u.protocol === 'https:' ? https : http).get(u, function(httpres) {
-			res.status(httpres.statusCode);
-			console.log(res);
+			
+				var type = httpres.headers['content-type'];
 
-			var type = httpres.headers['content-type'];
-			res.type(type);
+				if (res) {
+					res.status(httpres.statusCode);
+					res.type(type);
+					res.header('Cache-Control', config.cache);
+					httpres.pipe(res);	
+				}
 
-			var extension = mime.extension(type);
 
-			var temppath = temp.path({suffix: '.'+extension});
-			console.log(temppath);
+				var extension = mime.extension(type);
 
-			var file = fs.createWriteStream(temppath);
+				var temppath = temp.path({suffix: '.'+extension});
+				console.log(temppath);
 
-			var hash = crypto.createHash('sha1');
-			var size = 0;
-			httpres.on('data', function(data){
-				hash.update(data);
-				size += data.length;
-			});
+				var file = fs.createWriteStream(temppath);
 
-			httpres.pipe(file);
-			httpres.pipe(res);	
-			httpres.on('end', function() {
+				var hash = crypto.createHash('sha1');
+				var size = 0;
+				httpres.on('data', function(data){
+					hash.update(data);
+					size += data.length;
+				});
 
-				hash = hash.digest('hex');
-				var path = './uploads/'+hash+'.'+extension;
+				httpres.pipe(file);
+				httpres.on('end', function() {
 
-				fs.exists(path, function(exists) {
-					if (exists) {
-						// Just remove the temporary file, we don't need it
-						fs.unlink(temppath);
-						console.log("remove", temppath);
-					} else {
-						fs.rename(temppath, path, function() {
-							// filesDb.insert({
-							console.log("move", temppath, path);
-							// 	size: f.size,
-							// 	hash: f.hash,
-							// 	extension: extension,
-							// 	type: f.type,
-							// 	name: f.name,
-							// 	mtime: f.lastModifiedDate
-							// });
-					
-							// res.send({name: f.name, status: 'ok'});
-						});
-					}
+					hash = hash.digest('hex');
+					var path = './uploads/'+hash+'.'+extension;
+
+					fs.exists(path, function(exists) {
+						if (exists) {
+							// Just remove the temporary file, we don't need it
+							fs.unlink(temppath);
+							if (callback) {
+								callback(path, hash, extension);
+							}
+						} else {
+							fs.rename(temppath, path, function() {
+								if (callback) {
+									callback(path, hash, extension);
+								}
+							});
+						}
+					});
+
 					filesDb.insert({
 						size: size,
 						hash: hash,
@@ -254,13 +267,37 @@ app.get(/^\/https?:\/\/.+$/, function(req, res) {
 						mtime: new Date()
 					});
 				});
+			}).on('error', function(e) {
+				if (res) {
+					res.send(404, e.message);
+				}
+
+				throw new exception(e.message);
 			});
-		}).on('error', function(e) {
-			res.send(404, e.message);
-		});
 		}
 	});
+}
 
+app.get(/^\/(https?:\/\/.+)$/, function(req, res) {
+	fetchDistantFile(req.params[0], res);
+});
+
+app.get(/^\/thumbnail\/(https?:\/\/.+)$/, function(req, res) {
+	var path = req.params[0];
+
+	fetchDistantFile(path, false, function(filepath, hash, extension) {
+		sendThumbnail(hash+"."+extension, res);
+	});
+});
+
+app.get(/^\/resize\/(\d+)\/(\d+)\/(https?:\/\/.+)$/, function(req, res) {
+	var path = req.params[2],
+		width = parseInt(req.params[0]),
+		height = parseInt(req.params[1]);
+
+	fetchDistantFile(path, false, function(filepath, hash, extension) {
+		sendResizedImage(hash+"."+extension, width, height, res);
+	});
 });
 
 var server = app.listen(config.port, function() {

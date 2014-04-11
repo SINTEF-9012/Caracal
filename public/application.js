@@ -49,7 +49,7 @@ $(function() {
 
             if (!endTimer) {
                 endTimer = window.setTimeout(function() {
-                    showFiles();
+                    refreshFiles();
                     endTimer = 0;
                 }, 250);
             }
@@ -90,7 +90,8 @@ $(function() {
 
     function refreshFiles() {
         $.getJSON('/files', function(data) {
-            filesData = data.reverse();
+            filesData = {};
+            filesData = data;
 
             $('#pagination').pagination('updateItems', data.length);
 
@@ -108,7 +109,7 @@ $(function() {
 
         var jlist = $("#list");
 
-        filesData.slice(((pageNumber - 1) * itemsOnPage), (pageNumber * itemsOnPage))
+        filesData.slice(((pageNumber - 1) * itemsOnPage), (pageNumber * itemsOnPage)).reverse()
             .forEach(function(file) {
                 var path = '/' + file.hash + '.' + file.extension;
 

@@ -88,14 +88,18 @@ $(function() {
         }
     });
 
-    function refreshFiles() {
+    function refreshFiles(pageNumber) {
+        pageNumber = typeof pageNumber !== 'undefined' ? pageNumber : 1;
+
+        $('#pagination').pagination('drawPage', pageNumber);
+
         $.getJSON('/files', function(data) {
             filesData = {};
             filesData = data;
 
             $('#pagination').pagination('updateItems', data.length);
 
-            showFiles(1);
+            showFiles(pageNumber);
         });
     }
 
@@ -149,7 +153,7 @@ $(function() {
 
     }
 
-    refreshFiles();
+    refreshFiles(window.location.hash.split('-')[1]);
 
     var fetchUrlInput = $('#fetchUrlInput');
     $('#fetchForm').submit(function(e) {

@@ -8,7 +8,8 @@ var express = require('express'),
 	crypto = require('crypto'),
 	temp = require('temp'),
 	gm = require('gm'),
-	Nedb = require('nedb');
+	Nedb = require('nedb'),
+	retricon = require('retricon');
 
 var config = require('./config.json');
 
@@ -19,7 +20,7 @@ filesDb.ensureIndex({ fieldName: 'url', unique: true, sparse: true });
 
 var app = express();
 
-app.use(express.compress());
+app.use(express.compress())
 app.use(express.logger());
 app.use(express.static(__dirname + '/public'));
 app.use(express.static(__dirname + '/uploads'));
@@ -315,6 +316,29 @@ app.get(/^\/resize\/(\d+)\/(\d+)\/https?:\/\/.+$/, function(req, res) {
 		sendResizedImage(hash+"."+extension, width, height, res);
 	}, res);
 });
+
+app.get('/identicon/:hash', function(req, res) {
+	var style = (req.query.style && retricon.style.hasOwnProperty(req.query.style)) ? req.query.style : 'window';
+	var hash = crypto.createHash('sha1').update(req.params.hash).digest('hex');
+	var path = './identicons/'+hash+'-'+style+'.png';
+	fs.exists(path, function(exists) {
+
+		if (exists) {
+			res.header('Cache-Control', config.cache);
+			res.sendfile(path);
+		} else {
+			retricon(req.params.hash, retricon.style[style]).write(path, function(err) {
+				if (err) {
+					res.send(500, err);
+					return;
+				}
+
+				res.header('Cache-Control', config.cache);
+				res.sendfile(path);
+			});
+		}
+	});
+})
 
 var server = app.listen(config.port, function() {
 	console.log("Server started on http://localhost:"+config.port+"/");

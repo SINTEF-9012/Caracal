@@ -232,8 +232,7 @@ function fetchDistantFile(u2, res, callback, reserror) {
 
 				var extension = mime.extension(type);
 
-				var temppath = temp.path({suffix: '.'+extension});
-				console.log(temppath);
+				var temppath = temp.path({suffix: '.'+extension, prefix: 'fetch-', dir: './uploads'});
 
 				var file = fs.createWriteStream(temppath);
 

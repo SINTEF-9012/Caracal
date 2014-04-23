@@ -148,7 +148,7 @@ function sendThumbnail(path, res) {
 					return;
 				}
 
-				gm(uploadPath).thumb(128,128,thumbnailPath, 90, function(err) {
+				gm(uploadPath).autoOrient().thumb(128,128,thumbnailPath, 90, function(err) {
 					if (err) {
 						res.send(500, "Unable to resize the image. Is it really an image ?");
 						return;
@@ -179,7 +179,7 @@ function sendResizedImage(path, width, height, res) {
 					return;
 				}
 
-				gm(uploadPath).resize(width,height, '>')
+				gm(uploadPath).autoOrient().resize(width,height, '>')
 					.noProfile().write(fullResizedPath, function(err) {
 						if (err) {
 							res.send(500, "Unable to resize the image. Is it really an image ?");

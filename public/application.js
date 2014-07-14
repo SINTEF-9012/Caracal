@@ -131,9 +131,12 @@ $(function() {
                 j.attr('id', path);
                 j.children('a').attr('href', path);
 
-                if (/^image\//.test(file.type)) {
+                if (/^(video|image)\//.test(file.type)) {
                     j.find('.icon').empty().append($('<img/>').attr('src', '/thumbnail' + path))
-                    details += "<br/><a href='/resize/640/480" + path + "'>x480</a> - <a href='/resize/1280/720" + path + "'>x720</a> - <a href='/resize/1920/1080" + path + "'>x1080</a>";
+                    
+                    if (/^image\//.test(file.type)) {
+                        details += "<br/><a href='/resize/640/480" + path + "'>x480</a> - <a href='/resize/1280/720" + path + "'>x720</a> - <a href='/resize/1920/1080" + path + "'>x1080</a>";
+                    }
                 }
 
                 var button = $('<br/><button type="button" class="btn btn-xs btn-link">Remove</button>');

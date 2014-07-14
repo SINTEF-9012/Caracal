@@ -1,4 +1,6 @@
 var express = require('express'),
+	compression = require('compression'),
+	morgan = require('morgan'),
 	formidable = require('formidable'),
 	mime = require('mime'),
 	fs = require('fs'),
@@ -9,7 +11,8 @@ var express = require('express'),
 	temp = require('temp'),
 	gm = require('gm'),
 	Nedb = require('nedb'),
-	retricon = require('retricon');
+	retricon = require('retricon'),
+	ffmpeg = require('fluent-ffmpeg');
 
 var config = require('./config.json');
 
@@ -20,8 +23,8 @@ filesDb.ensureIndex({ fieldName: 'url', unique: true, sparse: true });
 
 var app = express();
 
-app.use(express.compress())
-app.use(express.logger());
+app.use(compression());
+app.use(morgan('short'));
 
 app.use(function(req, res, next) {
 	res.header("Access-Control-Allow-Origin", "*");
@@ -133,6 +136,20 @@ app.get(/^\/remove\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
 	});
 });
 
+function createThumbnail(path, uploadPath, thumbnailPath, res) {
+	gm(uploadPath).autoOrient().thumb(128,128,thumbnailPath, 90, function(err) {
+		if (err) {
+			res.redirect('/broken_thumbnail.png');
+			console.log(err);
+			return;
+		}
+
+		picturesSizeDb.insert({unlink: thumbnailPath, path:path});
+		res.header('Cache-Control', config.cache);
+		res.sendfile(thumbnailPath);
+	});
+}
+
 function sendThumbnail(path, res) {
 	var thumbnailPath = "./uploads/thumbnail-"+path,
 		uploadPath = "./uploads/"+path;
@@ -148,16 +165,28 @@ function sendThumbnail(path, res) {
 					return;
 				}
 
-				gm(uploadPath).autoOrient().thumb(128,128,thumbnailPath, 90, function(err) {
-					if (err) {
-						res.send(500, "Unable to resize the image. Is it really an image ?");
-						return;
-					}
+				// If the file is a video
+				if (/^video\//.test(mime.lookup(path))) {
+					ffmpeg(uploadPath).on('error', function(err,stdout,stderr) {
+						console.log(err);
+						res.redirect('/broken_thumbnail.png');
+					}).on('end', function() {
+						var ffmpegPath = './uploads/ffmpeg-1-'+path+'.png'
+						picturesSizeDb.insert({unlink: ffmpegPath, path:path});
+						createThumbnail(path, ffmpegPath, thumbnailPath, res);
+					}).takeScreenshots({
+						count: 1,
+						timemarks: ['0.1'],
+						filename: 'ffmpeg-%i-%f'
+					}, './uploads');
 
-					picturesSizeDb.insert({unlink: thumbnailPath, path:path});
-					res.header('Cache-Control', config.cache);
-					res.sendfile(thumbnailPath);
-				});
+				// If it's not a video, imagemagick will do the job
+				// We don't check the filetype, the error callback is triggered if
+				// imagemagick can't create a thumbnail
+				} else {
+					createThumbnail(path, uploadPath, thumbnailPath, res);
+				}
+
 			});
 		}
 	});
@@ -182,7 +211,8 @@ function sendResizedImage(path, width, height, res) {
 				gm(uploadPath).autoOrient().resize(width,height, '>')
 					.noProfile().write(fullResizedPath, function(err) {
 						if (err) {
-							res.send(500, "Unable to resize the image. Is it really an image ?");
+							console.log(err);
+							res.redirect('/broken_thumbnail.png');
 							return;
 						}
 
@@ -198,6 +228,10 @@ function sendResizedImage(path, width, height, res) {
 }
 
 function fetchDistantFile(u2, res, callback, reserror) {
+	// Outlook doesn't like the http://
+	// It's maybe the same for some other softwares
+	u2 = u2.replace(/^http(s?):\/([^\/])/,'http$1://$2');
+
 	filesDb.find({url:u2}, function(err, docs) {
 		if (docs.length) {
 			var file = docs[0];
@@ -239,7 +273,7 @@ function fetchDistantFile(u2, res, callback, reserror) {
 
 				var extension = mime.extension(type);
 
-				var temppath = temp.path({suffix: '.'+extension, prefix: 'fetch-', dir: './uploads'});
+				var temppath = temp.path({suffix: '.'+extension, prefix: 'temp-', dir: './uploads'});
 
 				var file = fs.createWriteStream(temppath);
 
@@ -295,17 +329,17 @@ function fetchDistantFile(u2, res, callback, reserror) {
 	});
 }
 
-app.get(/^\/https?:\/\/.+$/, function(req, res) {
+app.get(/^\/https?:\/\/?.+$/, function(req, res) {
 	fetchDistantFile(req.url.slice(1), res);
 });
 
-app.get(/^\/fetch\/https?:\/\/.+$/, function(req, res) {
+app.get(/^\/fetch\/https?:\/\/?.+$/, function(req, res) {
 	fetchDistantFile(req.url.slice(7), false, function(filepath, hash, extension) {
 		res.send({status: "ok", hash: hash, extension: extension});
 	}, res);
 });
 
-app.get(/^\/thumbnail\/https?:\/\/.+$/, function(req, res) {
+app.get(/^\/thumbnail\/https?:\/\/?.+$/, function(req, res) {
 	var path = req.url.slice(11);
 
 	fetchDistantFile(path, false, function(filepath, hash, extension) {
@@ -313,8 +347,8 @@ app.get(/^\/thumbnail\/https?:\/\/.+$/, function(req, res) {
 	}, res);
 });
 
-app.get(/^\/resize\/(\d+)\/(\d+)\/https?:\/\/.+$/, function(req, res) {
-	var path = req.url.match(/^\/resize\/\d+\/\d+\/(https?:\/\/.+)$/)[1],
+app.get(/^\/resize\/(\d+)\/(\d+)\/https?:\/\/?.+$/, function(req, res) {
+	var path = req.url.match(/^\/resize\/\d+\/\d+\/(https?:\/\/?.+)$/)[1],
 		width = parseInt(req.params[0]),
 		height = parseInt(req.params[1]);
 

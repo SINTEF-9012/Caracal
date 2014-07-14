@@ -173,7 +173,7 @@ function sendThumbnail(path, res) {
 					}).on('end', function() {
 						var ffmpegPath = './uploads/ffmpeg-1-'+path+'.png'
 						picturesSizeDb.insert({unlink: ffmpegPath, path:path});
-						createThumbnail(path, ffmpegPath, thumbnailPath, res);
+						createThumbnail(path, ffmpegPath, thumbnailPath+'.png', res);
 					}).takeScreenshots({
 						count: 1,
 						timemarks: ['0.1'],

@@ -11,7 +11,7 @@ It is a HTTP REST server, with a HTML5 user interface.
  * Drag and drop support
  * Progression bar for slow connexions
  * File suppressions
- * Thumbnails
+ * Thumbnails (for pictures and videos)
  * Resizing
  * Can fetch HTTP files
   * With a cache

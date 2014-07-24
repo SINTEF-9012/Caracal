@@ -154,6 +154,12 @@ function sendThumbnail(path, res) {
 	var thumbnailPath = "./uploads/thumbnail-"+path,
 		uploadPath = "./uploads/"+path;
 
+	var isVideo = /^video\//.test(mime.lookup(path));
+
+	if (isVideo) {
+		thumbnailPath += '.png';
+	}
+
 	fs.exists(thumbnailPath, function(exists) {
 		if (exists) {
 			res.header('Cache-Control', config.cache);
@@ -165,8 +171,7 @@ function sendThumbnail(path, res) {
 					return;
 				}
 
-				// If the file is a video
-				if (/^video\//.test(mime.lookup(path))) {
+				if (isVideo) {
 					ffmpeg(uploadPath).on('error', function(err,stdout,stderr) {
 						console.log(err);
 						res.redirect('/broken_thumbnail.png');

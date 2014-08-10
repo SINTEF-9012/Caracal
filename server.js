@@ -70,7 +70,8 @@ app.post('/upload', function(req, res) {
 		for (var key in files) {
 			var f = files[key];
 
-			var extension = mime.extension(f.type);
+			var extension = mime.extension(f.name ? mime.lookup(f.name) : f.type);
+
 
 			var path = "./uploads/"+f.hash+"."+extension;
 

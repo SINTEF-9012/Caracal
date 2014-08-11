@@ -147,7 +147,7 @@ function createThumbnail(path, uploadPath, thumbnailPath, res) {
 
 		picturesSizeDb.insert({unlink: thumbnailPath, path:path});
 		res.header('Cache-Control', config.cache);
-		res.sendfile(thumbnailPath);
+		res.sendFile(thumbnailPath, {root: __dirname});
 	});
 }
 
@@ -164,7 +164,7 @@ function sendThumbnail(path, res) {
 	fs.exists(thumbnailPath, function(exists) {
 		if (exists) {
 			res.header('Cache-Control', config.cache);
-			res.sendfile(thumbnailPath);
+			res.sendFile(thumbnailPath, {root: __dirname});
 		} else {
 			fs.exists(uploadPath, function(exists) {
 				if (!exists) {
@@ -206,7 +206,7 @@ function sendResizedImage(path, width, height, res) {
 	fs.exists(fullResizedPath, function(exists) {
 		if (exists) {
 			res.header('Cache-Control', config.cache);
-			res.sendfile(fullResizedPath);
+			res.sendFile(fullResizedPath, {root: __dirname});
 		} else {
 			fs.exists(uploadPath, function(exists) {
 				if (!exists) {
@@ -225,7 +225,7 @@ function sendResizedImage(path, width, height, res) {
 						picturesSizeDb.insert({unlink: fullResizedPath, path:path});
 
 						res.header('Cache-Control', config.cache);
-						res.sendfile(fullResizedPath);
+						res.sendFile(fullResizedPath, {root: __dirname});
 				});
 			});
 
@@ -245,7 +245,7 @@ function fetchDistantFile(u2, res, callback, reserror) {
 			var path = './uploads/'+file.hash+'.'+file.extension;
 		
 			if (res) {
-				res.sendfile(path);
+				res.sendFile(path, {root: __dirname});
 			}
 
 			if (callback) {
@@ -371,7 +371,7 @@ app.get('/identicon/:hash', function(req, res) {
 
 		if (exists) {
 			res.header('Cache-Control', config.cache);
-			res.sendfile(path);
+			res.sendFile(path, {root: __dirname});
 		} else {
 			retricon(req.params.hash, retricon.style[style]).write(path, function(err) {
 				if (err) {
@@ -380,7 +380,7 @@ app.get('/identicon/:hash', function(req, res) {
 				}
 
 				res.header('Cache-Control', config.cache);
-				res.sendfile(path);
+				res.sendFile(path, {root: __dirname});
 			});
 		}
 	});

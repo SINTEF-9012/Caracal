@@ -136,6 +136,9 @@ $(function() {
                     
                     if (/^image\//.test(file.type)) {
                         details += "<br/><a href='/resize/640/480" + path + "'>x480</a> - <a href='/resize/1280/720" + path + "'>x720</a> - <a href='/resize/1920/1080" + path + "'>x1080</a>";
+                    } else {
+                        details += "<br/><a href='/convert/mp4/480" + path + "'>mp4 x480</a> - <a href='/convert/mp4/720" + path + "'>mp4 x720</a> - <a href='/convert/mp4/1080" + path + "'>mp4 x1080</a>"
+                            + "<br/><a href='/convert/webm/480" + path + "'>webm x480</a> - <a href='/convert/webm/720" + path + "'>webm x720</a> - <a href='/convert/webm/1080" + path + "'>webm x1080</a>";
                     }
                 }
 

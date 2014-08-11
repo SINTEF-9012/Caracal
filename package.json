@@ -3,15 +3,15 @@
   "description": "Light media server",
   "version": "0.0.1",
   "dependencies": {
-    "express": "4.x",
+    "express": "~4.8.1",
     "formidable": "~1.0.15",
     "gm": "~1.16.0",
-    "nedb": "~0.10.6",
+    "nedb": "~0.10.7",
     "mime": "~1.2.11",
-    "temp": "~0.8.0",
+    "temp": "~0.8.1",
     "retricon": "git://github.com/SINTEF-9012/node-retricon",
-    "compression": "^1.0.8",
-    "morgan": "^1.1.1",
-    "fluent-ffmpeg": "^2.0.0-rc1"
+    "compression": "~1.0.11",
+    "morgan": "~1.2.2",
+    "fluent-ffmpeg": "~2.0.0-rc1"
   }
 }

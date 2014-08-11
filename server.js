@@ -63,7 +63,7 @@ app.post('/upload', function(req, res) {
 	form.parse(req, function(err, fields, files) {
 		if (err || !files) {
 			console.log("File upload error", err);
-			res.send(500, "Sorry, file upload error");
+			res.status(500).send("Sorry, file upload error");
 			return;
 		}
 
@@ -116,7 +116,7 @@ app.get(/^\/remove\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
 
 	picturesSizeDb.find({path: path}, function(err, docs) {
 		if (err) {
-			res.send(500, err);
+			res.status(500).send(err);
 			return;
 		}
 	
@@ -128,7 +128,7 @@ app.get(/^\/remove\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
 		
 		filesDb.remove({hash: hash, extension:extension}, {}, function(err, numRemoved) {
 			if (err) {
-				res.send(500, err);
+				res.status(500).send(err);
 				return;
 			}
 
@@ -168,7 +168,7 @@ function sendThumbnail(path, res) {
 		} else {
 			fs.exists(uploadPath, function(exists) {
 				if (!exists) {
-					res.send(404, "File not found, sorry");
+					res.status(404).send("File not found, sorry");
 					return;
 				}
 
@@ -210,7 +210,7 @@ function sendResizedImage(path, width, height, res) {
 		} else {
 			fs.exists(uploadPath, function(exists) {
 				if (!exists) {
-					res.send(404, "File not found, sorry");
+					res.status(404).send("File not found, sorry");
 					return;
 				}
 
@@ -326,9 +326,9 @@ function fetchDistantFile(u2, res, callback, reserror) {
 				});
 			}).on('error', function(e) {
 				if (res) {
-					res.send(404, e.message);
+					res.status(404).send(e.message);
 				} else if (reserror) {
-					reserror.send(404, e.message);
+					reserror.status(404).send(e.message);
 				}
 			});
 		}
@@ -375,7 +375,7 @@ app.get('/identicon/:hash', function(req, res) {
 		} else {
 			retricon(req.params.hash, retricon.style[style]).write(path, function(err) {
 				if (err) {
-					res.send(500, err);
+					res.status(500).send(err);
 					return;
 				}
 

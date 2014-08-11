@@ -1,22 +1,27 @@
 Caracal
 =======
 
-Caracal is a light files and images server.
+Caracal is a light multimedia server designed as a service.
 
-It is a HTTP REST server, with a HTML5 user interface.
+It provides a simple HTTP REST API and a HTML5 user interface.
 
 ### Features
 
- * Files upload !
- * Drag and drop support
- * Progression bar for slow connexions
+ * File uploads
  * File suppressions
- * Thumbnails (for pictures and videos)
- * Resizing
- * Can fetch HTTP files
-  * With a cache
+ * Picture and video thumbnails
+ * Picture resizing
+ * Video resizing and converting
+  * Convert videos to H264 or Webm 
+ * Can fetch distant HTTP files
+  * Multimedia reverse proxy with a cache
   * Transparent resizing
+  * Transparent video converting
   * Basic HTTP authentification support
+ * Light HTML5 user interface
+  * Drag and drop support
+  * Progression bar for slow connexions
+  * Thumbnails and pagination
 
 ## API
 
@@ -87,9 +92,22 @@ Example : ```GET /thumbnail/70aa99ede90f16ffbb7cbb66c8bde1a4e8d37383.jpeg``
 
 #### GET /resize/{max_width}/{max_height}/{hash}.{extension}
 
-Resize the given file. The image ratio is conserved.
+Resize the given image. The image aspect ratio is conserved.
+
+The image format must be compatible with GraphicsMagick.
 
 Example : ```GET /resize/1280/720/70aa99ede90f16ffbb7cbb66c8bde1a4e8d37383.jpeg```
+
+#### GET /convert/{format}/{height}/{hash}.{extension}
+
+Resize the given video. The video aspect ratio is conserved.
+
+The input video format must be compatible with your FFmpeg installation.
+
+Supported output formats : mp4 or webm
+Supported output sizes : 240, 480, 720, 1080
+
+Example : ```GET /convert/mp4/720/e7c7c984066753d5cc52e97f26f4f7892df67bacb.wmv```
 
 #### GET /thumbnail/{URL}
 
@@ -99,9 +117,20 @@ Example : ```GET /thumbnail/http://upload.wikimedia.org/wikipedia/commons/d/d3/V
 
 #### GET /resize/{max_width}/{max_height}/{URL}
 
-Resize the distant image. The image ratio is conserved.
+Resize the distant image. The image aspect ratio is conserved.
 
 Example : ```GET /resize/1280/720/http://upload.wikimedia.org/wikipedia/commons/d/d3/Veymont-aiguille_mg-k.jpg```
+
+#### GET /convert/{format}/{height}/{URL}
+
+Resize the distant video. The video ratio is conserved.
+
+The input video format must be compatible with your FFmpeg installation.
+
+Supported output formats : mp4 or webm
+Supported output sizes : 240, 480, 720, 1080
+
+Example : ```GET /convert/webm/480/http://example.net/video.flv```
 
 #### GET /{hash}.{extension}
 
@@ -111,6 +140,7 @@ Return the file :-)
 
  * [NodeJs](http://nodejs.org/)
  * [GraphicsMagick](http://www.graphicsmagick.org/) with [gm](http://aheckmann.github.io/gm/)
+ * [FFmpeg](https://www.ffmpeg.org/) with [node-fluent-ffmpeg](https://github.com/fluent-ffmpeg/node-fluent-ffmpeg)
  * [Express](http://expressjs.com/)
  * [Bootstrap](http://getbootstrap.com)
  * [jQuery](http://jquery.com)

@@ -233,6 +233,68 @@ function sendResizedImage(path, width, height, res) {
 	});
 }
 
+function sendConvertedVideo(path, format, size, res) {
+	var convertedPath = "/ffmpeg-"+path+"-"+size+"."+format,
+		fullConvertedPath = "./uploads/"+convertedPath,
+		uploadPath = "./uploads/"+path;
+
+	fs.exists(fullConvertedPath, function(exists) {
+		if (exists) {
+			res.header('Cache-Control', config.cache);
+			res.sendFile(fullConvertedPath, {root: __dirname});
+		} else {
+			fs.exists(uploadPath, function(exists) {
+				if (!exists) {
+					res.status(404).send("File not found, sorry");
+					return;
+				}
+
+
+				console.log("The file "+path+" will be converted to "+format);
+
+				var proc = ffmpeg(uploadPath);
+
+				if (format === 'mp4') {
+					proc.format('mp4')
+						.videoCodec('libx264')
+						.audioCodec('aac');
+				} else if (format === 'webm') {
+					proc.format('webm')
+						.videoCodec('libvpx')
+						//.videoBitrate('1024k')
+						.audioCodec('libvorbis');
+				}
+
+
+				proc.size('?x'+size)
+					/*.fps(30)
+					.audioChannels(2)
+					.audioFrequency(44100)
+					.audioBitrate('192k')*/
+					.on('end', function() {
+						console.log("The file "+path+" has been converted succesfully.");
+						picturesSizeDb.insert({unlink: fullConvertedPath, path:path});
+						res.header('Cache-Control', config.cache);
+						res.sendFile(fullConvertedPath, {root: __dirname});
+					})
+					.on('error', function(err) {
+						console.log('An error happened: '+err.message);
+						res.status(500).send(err.message);
+						fs.exists(fullConvertedPath, function(exists) {
+							if (exists) {
+								fs.unlink(fullConvertedPath);	
+							}
+						});
+					})
+					.output(fullConvertedPath)
+					//.output(res, {end: true}) // the streaming doesn't work with mp4
+					// (it does with flv and .preset('flashvideo') )
+					.run();
+			})
+		}
+	})
+}
+
 function fetchDistantFile(u2, res, callback, reserror) {
 	// Outlook doesn't like the http://
 	// It's maybe the same for some other softwares
@@ -384,7 +446,25 @@ app.get('/identicon/:hash', function(req, res) {
 			});
 		}
 	});
-})
+});
+
+app.get(/^\/convert\/(mp4|webm)\/(1080|720|480|240)\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
+	var path = req.params[2],
+		format = req.params[0];
+		size = parseInt(req.params[1]);
+	
+	sendConvertedVideo(path, format, size, res);
+});
+
+app.get(/^\/convert\/(mp4|webm)\/(1080|720|480|240)\/(https?:\/\/?.+)$/, function(req, res) {
+	var path = req.params[2],
+		format = req.params[0],
+		size = parseInt(req.params[1]);
+
+	fetchDistantFile(path, false, function(filepath, hash, extension) {
+		sendConvertedVideo(hash+"."+extension, format, size, res);
+	}, res);
+});
 
 var server = app.listen(config.port, function() {
 	console.log("Server started on http://localhost:"+config.port+"/");

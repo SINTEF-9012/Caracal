@@ -104,6 +104,13 @@ app.post('/upload', function(req, res) {
 });
 
 app.get(/^\/remove\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
+
+	var deletionsKey = config['deletions-key'];
+	if (deletionsKey && deletionsKey !== req.query.key) {
+		res.status(403).send('Missing or wrong deletions key');
+		return;
+	}
+
 	var path = req.params[0];
 
 

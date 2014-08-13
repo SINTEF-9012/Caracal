@@ -144,9 +144,23 @@ $(function() {
 
                 var button = $('<br/><button type="button" class="btn btn-xs btn-link">Remove</button>');
                 button.click(function() {
+
+                    if (!window.sessionStorage) {
+                        window.sessionStorage = {};
+                    }
+
+                    if (!window.sessionStorage.deletionsKey) {
+                        window.sessionStorage.deletionsKey = window.prompt("Please provide the deletions key");
+                    }
+
                     if (confirm("Do you really want to remove \"" + file.name + "\"? It's a good file.")) {
-                        $.getJSON('/remove' + path, function(data) {
+                        $.getJSON('/remove' + path, {
+                            key: window.sessionStorage.deletionsKey
+                        }, function(data) {
                             j.remove();
+                        }).fail(function(e) {
+                            delete window.sessionStorage.deletionsKey;
+                            alert("Error: "+e.responseText);
                         });
                     }
                 });

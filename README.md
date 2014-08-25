@@ -98,6 +98,10 @@ The image format must be compatible with GraphicsMagick.
 
 Example : ```GET /resize/1280/720/70aa99ede90f16ffbb7cbb66c8bde1a4e8d37383.jpeg```
 
+#### GET /resize/deform/{max_width}/{max_height}/{hash}.{extension}
+
+Same as resize but the ratio is not conserved.
+
 #### GET /convert/{format}/{height}/{hash}.{extension}
 
 Resize the given video. The video aspect ratio is conserved.
@@ -120,6 +124,10 @@ Example : ```GET /thumbnail/http://upload.wikimedia.org/wikipedia/commons/d/d3/V
 Resize the distant image. The image aspect ratio is conserved.
 
 Example : ```GET /resize/1280/720/http://upload.wikimedia.org/wikipedia/commons/d/d3/Veymont-aiguille_mg-k.jpg```
+
+#### GET /resize/{max_width}/{max_height}/{URL}
+
+Same as resize but the ratio is not conserved.
 
 #### GET /convert/{format}/{height}/{URL}
 

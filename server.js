@@ -41,12 +41,13 @@ app.get('/files', function(req, res) {
 	});
 });
 
-app.get(/^\/resize\/(\d+)\/(\d+)\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
-	var path = req.params[2],
-		width = parseInt(req.params[0]),
-		height = parseInt(req.params[1]);
+app.get(/^\/resize\/(deform\/)?(\d+)\/(\d+)\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
+	var path = req.params[3],
+		width = parseInt(req.params[1]),
+		height = parseInt(req.params[2]),
+		deform = !!req.params[0];
 	
-	sendResizedImage(path, width, height, res);
+	sendResizedImage(path, width, height, deform, res);
 });
 
 app.get(/^\/thumbnail\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
@@ -205,8 +206,8 @@ function sendThumbnail(path, res) {
 	});
 }
 
-function sendResizedImage(path, width, height, res) {
-	var resizedPath = "/"+width+"x"+height+"-"+path,
+function sendResizedImage(path, width, height, deform, res) {
+	var resizedPath = "/"+width+"x"+height+(deform ? "-deform-" : "-" ) + path,
 		fullResizedPath = "./uploads"+resizedPath,
 		uploadPath = "./uploads/"+path;
 
@@ -221,7 +222,7 @@ function sendResizedImage(path, width, height, res) {
 					return;
 				}
 
-				gm(uploadPath).autoOrient().resize(width,height, '>')
+				gm(uploadPath).autoOrient().resize(width,height, deform ? '!>' : '>')
 					.noProfile().write(fullResizedPath, function(err) {
 						if (err) {
 							console.log(err);
@@ -422,13 +423,14 @@ app.get(/^\/thumbnail\/https?:\/\/?.+$/, function(req, res) {
 	}, res);
 });
 
-app.get(/^\/resize\/(\d+)\/(\d+)\/https?:\/\/?.+$/, function(req, res) {
-	var path = req.url.match(/^\/resize\/\d+\/\d+\/(https?:\/\/?.+)$/)[1],
-		width = parseInt(req.params[0]),
-		height = parseInt(req.params[1]);
+app.get(/^\/resize\/(deform\/)?(\d+)\/(\d+)\/https?:\/\/?.+$/, function(req, res) {
+	var path = req.url.match(/^\/resize\/(deform\/)?\d+\/\d+\/(https?:\/\/?.+)$/)[2],
+		width = parseInt(req.params[1]),
+		height = parseInt(req.params[2]),
+		deform = !!req.params[0];
 
 	fetchDistantFile(path, false, function(filepath, hash, extension) {
-		sendResizedImage(hash+"."+extension, width, height, res);
+		sendResizedImage(hash+"."+extension, width, height, deform, res);
 	}, res);
 });
 

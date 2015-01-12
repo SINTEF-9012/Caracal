@@ -125,7 +125,7 @@ Resize the distant image. The image aspect ratio is conserved.
 
 Example : ```GET /resize/1280/720/http://upload.wikimedia.org/wikipedia/commons/d/d3/Veymont-aiguille_mg-k.jpg```
 
-#### GET /resize/{max_width}/{max_height}/{URL}
+#### GET /resize/deform/{max_width}/{max_height}/{URL}
 
 Same as resize but the ratio is not conserved.
 

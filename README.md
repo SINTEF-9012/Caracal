@@ -172,3 +172,11 @@ You can change the http listening port, the user-agent and the list of basic htt
 ## Screenshot (work in progress)
 
 ![Old screenshot](http://i.imgur.com/vydii2e.png)
+
+### Acknowledgements
+
+This library is developed in context of the [BRIDGE](http://www.bridgeproject.eu/en) project.
+
+### Licence
+
+The source code of this library is licenced under the MIT License.

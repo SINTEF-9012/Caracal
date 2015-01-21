@@ -3,16 +3,17 @@
   "description": "Light media server",
   "version": "0.0.1",
   "dependencies": {
+    "compression": "^1.0.11",
     "express": "~4.8.5",
+    "fluent-ffmpeg": "^2.0.0-rc1",
+    "follow-redirects": "0.0.3",
     "formidable": "~1.0.15",
     "gm": "~1.16.0",
-    "nedb": "~0.11.0",
     "mime": "~1.2.11",
-    "temp": "~0.8.1",
-    "retricon": "git://github.com/SINTEF-9012/node-retricon",
-    "compression": "^1.0.11",
     "morgan": "^1.2.3",
-    "fluent-ffmpeg": "^2.0.0-rc1"
+    "nedb": "~0.11.0",
+    "retricon": "git://github.com/SINTEF-9012/node-retricon",
+    "temp": "~0.8.1"
   },
   "license": "MIT"
 }

@@ -41,6 +41,28 @@ app.get('/files', function(req, res) {
 	});
 });
 
+app.get('/paginateFiles/:page', function(req, res) {
+	var pageSize = req.query.hasOwnProperty('pageSize') ?
+			Math.max(2, parseInt(req.query.pageSize)) : 10,
+		page = Math.max(0, parseInt(req.params.page));
+
+	var req = filesDb.find({});
+
+	req.sort({mtime: 1});
+	req.skip(pageSize * page);
+	req.limit(pageSize);
+
+	req.exec(function(err, docs) {
+		var req = filesDb.count({}, function(err, count) {
+			res.json({
+				files: docs,
+				count: count
+			});
+		});
+	});
+
+});
+
 app.get(/^\/resize\/(deform\/)?(\d+)\/(\d+)\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
 	var path = req.params[3],
 		width = parseInt(req.params[1]),

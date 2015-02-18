@@ -1,19 +1,25 @@
 {
-  "name": "Caracal",
-  "description": "Light media server",
-  "version": "0.0.1",
+  "name": "caracal",
+  "description": "Light multimedia server",
+  "version": "1.3.0",
+  "homepage": "https://github.com/SINTEF-9012/Caracal",
   "dependencies": {
-    "compression": "^1.0.11",
-    "express": "~4.8.5",
-    "fluent-ffmpeg": "^2.0.0-rc1",
+    "compression": "^1.4.1",
+    "express": "~4.11.2",
+    "fluent-ffmpeg": "^2.0.0-rc3",
     "follow-redirects": "0.0.3",
-    "formidable": "~1.0.15",
-    "gm": "~1.16.0",
-    "mime": "~1.2.11",
-    "morgan": "^1.2.3",
-    "nedb": "~0.11.0",
-    "retricon": "git://github.com/SINTEF-9012/node-retricon",
+    "formidable": "~1.0.17",
+    "gm": "~1.17.0",
+    "mime": "~1.3.4",
+    "morgan": "^1.5.1",
+    "nedb": "~1.1.1",
+    "retricon": "git://github.com/SINTEF-0",
     "temp": "~0.8.1"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "keywords": ["multimedia", "video", "file", "thumbnail", "resizing", "converting", "cache", "proxy"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SINTEF-9012/Caracal.git"
+  }
 }

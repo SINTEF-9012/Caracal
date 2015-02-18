@@ -5,6 +5,11 @@ Caracal is a light multimedia server designed as a service.
 
 It provides a simple HTTP REST API and a HTML5 user interface.
 
+### Installation
+```npm install caracal```
+
+_GraphicsMagick or ImageMagick is required. FFmpeg (not libav) is necessary for video resizing and converting._
+
 ### Features
 
  * File uploads

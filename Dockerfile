@@ -8,7 +8,7 @@ RUN gpg --keyserver pool.sks-keyservers.net --recv-keys 7937DFD2AB06298B2293C318
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update
-RUN apt-get install -y curl wget software-properties-common imagemagick git git-core
+RUN apt-get install -y curl wget software-properties-common graphicsmagick git git-core
 RUN add-apt-repository -y ppa:jon-severinsson/ffmpeg
 RUN apt-get update
 RUN apt-get install -y ffmpeg

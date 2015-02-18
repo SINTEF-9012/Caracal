@@ -10,6 +10,10 @@ It provides a simple HTTP REST API and a HTML5 user interface.
 
 _GraphicsMagick or ImageMagick is required. FFmpeg (not libav) is necessary for video resizing and converting._
 
+### [Docker](https://registry.hub.docker.com/u/yellowiscool/caracal/)
+
+```docker pull yellowiscool/caracal```
+
 ### Features
 
  * File uploads

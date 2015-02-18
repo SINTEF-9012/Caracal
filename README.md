@@ -160,16 +160,6 @@ Return the file :-)
  * [jQuery File Upload](http://blueimp.github.io/jQuery-File-Upload/)
  * [NeDB](https://github.com/louischatriot/nedb)
 
-## Usage
-
-```
-$ git clone https://github.com/SINTEF-9012/Caracal.git
-$ cd Caracal
-$ npm install
-$ bower install
-$ node server.js
-```
-
 ## Configuration
 
 You can change the http listening port, the user-agent and the list of basic http authentification username/password couples in the config.json file.

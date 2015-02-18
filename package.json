@@ -1,7 +1,7 @@
 {
   "name": "caracal",
   "description": "Light multimedia server",
-  "version": "1.3.0",
+  "version": "1.3.2",
   "homepage": "https://github.com/SINTEF-9012/Caracal",
   "dependencies": {
     "compression": "^1.4.1",
@@ -13,7 +13,7 @@
     "mime": "~1.3.4",
     "morgan": "^1.5.1",
     "nedb": "~1.1.1",
-    "retricon": "git://github.com/SINTEF-0",
+    "retricon": "git://github.com/SINTEF-9012/node-retricon",
     "temp": "~0.8.1"
   },
   "license": "MIT",

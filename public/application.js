@@ -83,6 +83,7 @@ $(function() {
         cssStyle: 'pagination',
         prevText: '&laquo;',
         nextText: '&raquo;',
+        displayedPages: 8,
         onPageClick: function(pageNumber) {
             showFiles(pageNumber);
         }

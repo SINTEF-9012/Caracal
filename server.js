@@ -128,7 +128,7 @@ app.post('/upload', function(req, res) {
 
 app.get(/^\/remove\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
 
-	var deletionsKey = config['deletions-key'];
+	var deletionsKey = process.env.CARACAL_DELETIONS_KEY || config['deletions-key'];
 	if (deletionsKey && deletionsKey !== req.query.key) {
 		res.status(403).send('Missing or wrong deletions key');
 		return;
@@ -497,6 +497,7 @@ app.get(/^\/convert\/(mp4|webm)\/(1080|720|480|240)\/(https?:\/\/?.+)$/, functio
 	}, res);
 });
 
-var server = app.listen(config.port, function() {
-	console.log("Server started on http://localhost:"+config.port+"/");
+var serverPort = process.env.CARACAL_PORT || config.port;
+var server = app.listen(serverPort, function() {
+	console.log("Server started on http://localhost:"+serverPort+"/");
 });

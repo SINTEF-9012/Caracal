@@ -10,6 +10,7 @@ var express = require('express'),
 	crypto = require('crypto'),
 	temp = require('temp'),
 	gm = require('gm'),
+	async = require('async'),
 	Nedb = require('nedb'),
 	retricon = require('retricon'),
 	ffmpeg = require('fluent-ffmpeg');
@@ -20,6 +21,14 @@ var filesDb = new Nedb({filename: 'files.db', autoload:true}),
 	picturesSizeDb = new Nedb({filename: 'picturesSizes.db', autoload:true});
 
 filesDb.ensureIndex({ fieldName: 'url', unique: true, sparse: true });
+
+var gmWorker = async.queue(function(task, callback) {
+	task(callback);
+}, process.env.CARACAL_CONCURRENCY || config.concurrency);
+
+var ffmpegWorker = async.queue(function(task, callback) {
+	task(callback);
+}, Math.min(Math.round((process.env.CARACAL_CONCURRENCY || config.concurrency)/4), 1));
 
 var app = express();
 
@@ -168,13 +177,14 @@ app.get(/^\/remove\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
 });
 
 function createThumbnail(path, uploadPath, thumbnailPath, res) {
-	gm(uploadPath).autoOrient().thumb(128,128,thumbnailPath, 90, function(err) {
+	gmWorker.push(function(callback){
+		gm(uploadPath).autoOrient().thumb(128,128,thumbnailPath, 90, callback);
+	}, function(err) {
 		if (err) {
 			res.redirect('/broken_thumbnail.png');
 			console.log(err);
 			return;
 		}
-
 		picturesSizeDb.insert({unlink: thumbnailPath, path:path});
 		res.header('Cache-Control', config.cache);
 		res.sendFile(thumbnailPath, {root: __dirname});
@@ -203,18 +213,22 @@ function sendThumbnail(path, res) {
 				}
 
 				if (isVideo) {
-					ffmpeg(uploadPath).on('error', function(err,stdout,stderr) {
-						console.log(err);
-						res.redirect('/broken_thumbnail.png');
-					}).on('end', function() {
-						var ffmpegPath = './uploads/ffmpeg-1-'+path+'.png'
-						picturesSizeDb.insert({unlink: ffmpegPath, path:path});
-						createThumbnail(path, ffmpegPath, thumbnailPath+'.png', res);
-					}).takeScreenshots({
-						count: 1,
-						timemarks: ['0.1'],
-						filename: 'ffmpeg-%i-%f'
-					}, './uploads');
+					ffmpegWorker.push(function(callback){
+						ffmpeg(uploadPath).on('error', function(err,stdout,stderr) {
+							console.log(err);
+							res.redirect('/broken_thumbnail.png');
+							callback();
+						}).on('end', function() {
+							var ffmpegPath = './uploads/ffmpeg-1-'+path+'.png'
+							picturesSizeDb.insert({unlink: ffmpegPath, path:path});
+							callback();
+							createThumbnail(path, ffmpegPath, thumbnailPath+'.png', res);
+						}).takeScreenshots({
+							count: 1,
+							timemarks: ['0.1'],
+							filename: 'ffmpeg-%i-%f'
+						}, './uploads');
+					});
 
 				// If it's not a video, imagemagick will do the job
 				// We don't check the filetype, the error callback is triggered if
@@ -244,8 +258,10 @@ function sendResizedImage(path, width, height, deform, res) {
 					return;
 				}
 
-				gm(uploadPath).autoOrient().resize(width,height, deform ? '!>' : '>')
-					.noProfile().write(fullResizedPath, function(err) {
+				gmWorker.push(function(callback){
+					gm(uploadPath).autoOrient().resize(width,height, deform ? '!>' : '>')
+						.noProfile().write(fullResizedPath, callback);
+				}, function(err) {
 						if (err) {
 							console.log(err);
 							res.redirect('/broken_thumbnail.png');
@@ -282,44 +298,48 @@ function sendConvertedVideo(path, format, size, res) {
 
 				console.log("The file "+path+" will be converted to "+format);
 
-				var proc = ffmpeg(uploadPath);
+				ffmpegWorker.push(function(callback){
+					var proc = ffmpeg(uploadPath);
 
-				if (format === 'mp4') {
-					proc.format('mp4')
-						.videoCodec('libx264')
-						.audioCodec('aac');
-				} else if (format === 'webm') {
-					proc.format('webm')
-						.videoCodec('libvpx')
-						//.videoBitrate('1024k')
-						.audioCodec('libvorbis');
-				}
+					if (format === 'mp4') {
+						proc.format('mp4')
+							.videoCodec('libx264')
+							.audioCodec('aac');
+					} else if (format === 'webm') {
+						proc.format('webm')
+							.videoCodec('libvpx')
+							//.videoBitrate('1024k')
+							.audioCodec('libvorbis');
+					}
 
 
-				proc.size('?x'+size)
-					/*.fps(30)
-					.audioChannels(2)
-					.audioFrequency(44100)
-					.audioBitrate('192k')*/
-					.on('end', function() {
-						console.log("The file "+path+" has been converted succesfully.");
-						picturesSizeDb.insert({unlink: fullConvertedPath, path:path});
-						res.header('Cache-Control', config.cache);
-						res.sendFile(fullConvertedPath, {root: __dirname});
-					})
-					.on('error', function(err) {
-						console.log('An error happened: '+err.message);
-						res.status(500).send(err.message);
-						fs.exists(fullConvertedPath, function(exists) {
-							if (exists) {
-								fs.unlink(fullConvertedPath);	
-							}
-						});
-					})
-					.output(fullConvertedPath)
-					//.output(res, {end: true}) // the streaming doesn't work with mp4
-					// (it does with flv and .preset('flashvideo') )
-					.run();
+					proc.size('?x'+size)
+						/*.fps(30)
+						.audioChannels(2)
+						.audioFrequency(44100)
+						.audioBitrate('192k')*/
+						.on('end', function() {
+							console.log("The file "+path+" has been converted succesfully.");
+							picturesSizeDb.insert({unlink: fullConvertedPath, path:path});
+							res.header('Cache-Control', config.cache);
+							res.sendFile(fullConvertedPath, {root: __dirname});
+							callback();
+						})
+						.on('error', function(err) {
+							console.log('An error happened: '+err.message);
+							res.status(500).send(err.message);
+							fs.exists(fullConvertedPath, function(exists) {
+								if (exists) {
+									fs.unlink(fullConvertedPath);	
+								}
+							});
+							callback();
+						})
+						.output(fullConvertedPath)
+						//.output(res, {end: true}) // the streaming doesn't work with mp4
+						// (it does with flv and .preset('flashvideo') )
+						.run();
+				});
 			})
 		}
 	})
@@ -466,7 +486,9 @@ app.get('/identicon/:hash', function(req, res) {
 			res.header('Cache-Control', config.cache);
 			res.sendFile(path, {root: __dirname});
 		} else {
-			retricon(req.params.hash, retricon.style[style]).write(path, function(err) {
+			gmWorker.push(function(callback){
+				retricon(req.params.hash, retricon.style[style]).write(path, callback);
+			}, function(err) {
 				if (err) {
 					res.status(500).send(err);
 					return;

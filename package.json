@@ -1,9 +1,11 @@
 {
   "name": "caracal",
   "description": "Light multimedia server",
-  "version": "1.3.3",
+  "version": "1.3.7",
   "homepage": "https://github.com/SINTEF-9012/Caracal",
   "dependencies": {
+    "async": "^0.9.0",
+    "bower": "^1.3.12",
     "compression": "^1.4.1",
     "express": "~4.11.2",
     "fluent-ffmpeg": "^2.0.0-rc3",
@@ -13,7 +15,7 @@
     "mime": "~1.3.4",
     "morgan": "^1.5.1",
     "nedb": "~1.1.1",
-    "retricon": "git://github.com/SINTEF-9012/node-retricon",
+    "retricon": "SINTEF-9012/node-retricon",
     "temp": "~0.8.1"
   },
   "license": "MIT",
@@ -34,8 +36,5 @@
   "scripts": {
     "start": "node server.js",
     "postinstall": "node node_modules/bower/bin/bower cache clean && node node_modules/bower/bin/bower install"
-  },
-  "devDependencies": {
-    "bower": "^1.3.12"
   }
 }

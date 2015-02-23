@@ -31,7 +31,7 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 RUN useradd caracal && echo "caracal:caracal" | chpasswd
-RUN mkdir -p /home/caracal && chown -R caracal:caracal /home/docker && chown -R caracal:caracal /usr/src/app
+RUN mkdir -p /home/caracal && chown -R caracal:caracal /home/caracal && chown -R caracal:caracal /usr/src/app
 USER caracal
 
 RUN git clone --depth=1 https://github.com/SINTEF-9012/Caracal.git

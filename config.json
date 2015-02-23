@@ -6,5 +6,6 @@
 	"auths": {
 		"auth.example.com": "admin:admin"
 	},
-	"concurrency": 8
+	"concurrency": 8,
+	"datapath": "./"
 }

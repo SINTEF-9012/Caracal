@@ -4,6 +4,7 @@ var express = require('express'),
 	formidable = require('formidable'),
 	mime = require('mime'),
 	fs = require('fs'),
+	path = require('path'),
 	url = require('url'),
 	http = require('follow-redirects').http,
 	https = require('follow-redirects').https,
@@ -17,8 +18,11 @@ var express = require('express'),
 
 var config = require('./config.json');
 
-var filesDb = new Nedb({filename: 'files.db', autoload:true}),
-	picturesSizeDb = new Nedb({filename: 'picturesSizes.db', autoload:true});
+var datapath = process.env.CARACAL_DATAPATH || config.datapath,
+	uploadDatapath = path.resolve(datapath+"uploads");
+
+var filesDb = new Nedb({filename: datapath+'files.db', autoload:true}),
+	picturesSizeDb = new Nedb({filename: datapath+'picturesSizes.db', autoload:true});
 
 filesDb.ensureIndex({ fieldName: 'url', unique: true, sparse: true });
 
@@ -42,7 +46,7 @@ app.use(function(req, res, next) {
 });
 
 app.use(express.static(__dirname + '/public'));
-app.use(express.static(__dirname + '/uploads'));
+app.use(express.static(uploadDatapath));
 
 app.get('/files', function(req, res) {
 	filesDb.find({}).sort({mtime: -1}).exec(function(err, docs) {
@@ -88,7 +92,7 @@ app.get(/^\/thumbnail\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
 
 app.post('/upload', function(req, res) {
 	var form = new formidable.IncomingForm();
-	form.uploadDir = "./uploads";
+	form.uploadDir = uploadDatapath;
 	form.keepExtensions = true;
 	form.hash = 'sha1';
 
@@ -105,7 +109,7 @@ app.post('/upload', function(req, res) {
 			var extension = mime.extension(f.name ? mime.lookup(f.name) : f.type);
 
 
-			var path = "./uploads/"+f.hash+"."+extension;
+			var path = uploadDatapath+"/"+f.hash+"."+extension;
 
 			fs.exists(path, function(exists) {
 				if (exists) {
@@ -146,7 +150,7 @@ app.get(/^\/remove\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {
 	var path = req.params[0];
 
 
-	var	uploadPath = "./uploads/"+path;
+	var	uploadPath = uploadDatapath+"/"+path;
 
 	fs.unlink(uploadPath);
 
@@ -192,8 +196,8 @@ function createThumbnail(path, uploadPath, thumbnailPath, res) {
 }
 
 function sendThumbnail(path, res) {
-	var thumbnailPath = "./uploads/thumbnail-"+path,
-		uploadPath = "./uploads/"+path;
+	var thumbnailPath = uploadDatapath+"/thumbnail-"+path,
+		uploadPath = uploadDatapath+"/"+path;
 
 	var isVideo = /^video\//.test(mime.lookup(path));
 
@@ -219,7 +223,7 @@ function sendThumbnail(path, res) {
 							res.redirect('/broken_thumbnail.png');
 							callback();
 						}).on('end', function() {
-							var ffmpegPath = './uploads/ffmpeg-1-'+path+'.png'
+							var ffmpegPath = uploadDatapath+'/ffmpeg-1-'+path+'.png'
 							picturesSizeDb.insert({unlink: ffmpegPath, path:path});
 							callback();
 							createThumbnail(path, ffmpegPath, thumbnailPath+'.png', res);
@@ -227,7 +231,7 @@ function sendThumbnail(path, res) {
 							count: 1,
 							timemarks: ['0.1'],
 							filename: 'ffmpeg-%i-%f'
-						}, './uploads');
+						}, uploadDatapath);
 					});
 
 				// If it's not a video, imagemagick will do the job
@@ -244,8 +248,8 @@ function sendThumbnail(path, res) {
 
 function sendResizedImage(path, width, height, deform, res) {
 	var resizedPath = "/"+width+"x"+height+(deform ? "-deform-" : "-" ) + path,
-		fullResizedPath = "./uploads"+resizedPath,
-		uploadPath = "./uploads/"+path;
+		fullResizedPath = uploadDatapath+resizedPath,
+		uploadPath = uploadDatapath+"/"+path;
 
 	fs.exists(fullResizedPath, function(exists) {
 		if (exists) {
@@ -281,8 +285,8 @@ function sendResizedImage(path, width, height, deform, res) {
 
 function sendConvertedVideo(path, format, size, res) {
 	var convertedPath = "/ffmpeg-"+path+"-"+size+"."+format,
-		fullConvertedPath = "./uploads/"+convertedPath,
-		uploadPath = "./uploads/"+path;
+		fullConvertedPath = uploadDatapath+"/"+convertedPath,
+		uploadPath = uploadDatapath+"/"+path;
 
 	fs.exists(fullConvertedPath, function(exists) {
 		if (exists) {
@@ -354,7 +358,7 @@ function fetchDistantFile(u2, res, callback, reserror) {
 		if (docs.length) {
 			var file = docs[0];
 
-			var path = './uploads/'+file.hash+'.'+file.extension;
+			var path = uploadDatapath+'/'+file.hash+'.'+file.extension;
 		
 			if (res) {
 				res.sendFile(path, {root: __dirname});
@@ -391,7 +395,7 @@ function fetchDistantFile(u2, res, callback, reserror) {
 
 				var extension = mime.extension(type);
 
-				var temppath = temp.path({suffix: '.'+extension, prefix: 'temp-', dir: './uploads'});
+				var temppath = temp.path({suffix: '.'+extension, prefix: 'temp-', dir: uploadDatapath});
 
 				var file = fs.createWriteStream(temppath);
 
@@ -406,7 +410,7 @@ function fetchDistantFile(u2, res, callback, reserror) {
 				httpres.on('end', function() {
 
 					hash = hash.digest('hex');
-					var path = './uploads/'+hash+'.'+extension;
+					var path = uploadDatapath+'/'+hash+'.'+extension;
 
 					fs.exists(path, function(exists) {
 						if (exists) {
@@ -479,7 +483,7 @@ app.get(/^\/resize\/(deform\/)?(\d+)\/(\d+)\/https?:\/\/?.+$/, function(req, res
 app.get('/identicon/:hash', function(req, res) {
 	var style = (req.query.style && retricon.style.hasOwnProperty(req.query.style)) ? req.query.style : 'window';
 	var hash = crypto.createHash('sha1').update(req.params.hash).digest('hex');
-	var path = './identicons/'+hash+'-'+style+'.png';
+	var path = datapath+'identicons/'+hash+'-'+style+'.png';
 	fs.exists(path, function(exists) {
 
 		if (exists) {

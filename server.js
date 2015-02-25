@@ -18,8 +18,11 @@ var express = require('express'),
 
 var config = require('./config.json');
 
-var datapath = process.env.CARACAL_DATAPATH || config.datapath,
-	uploadDatapath = path.resolve(datapath+"uploads");
+var datapath = process.env.CARACAL_DATAPATH || config.datapath;
+if (datapath.slice(-1) !== '/') {
+	datapath += '/';
+}
+var uploadDatapath = datapath+"uploads";
 
 var filesDb = new Nedb({filename: datapath+'files.db', autoload:true}),
 	picturesSizeDb = new Nedb({filename: datapath+'picturesSizes.db', autoload:true});
@@ -46,7 +49,7 @@ app.use(function(req, res, next) {
 });
 
 app.use(express.static(__dirname + '/public'));
-app.use(express.static(uploadDatapath));
+app.use(express.static(path.resolve(uploadDatapath)));
 
 app.get('/files', function(req, res) {
 	filesDb.find({}).sort({mtime: -1}).exec(function(err, docs) {

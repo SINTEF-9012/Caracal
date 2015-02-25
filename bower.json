@@ -1,7 +1,7 @@
 {
   "name": "Caracal",
   "description": "Light media server",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "dependencies": {
     "jquery-file-upload": "~9.7.0",
     "jquery": "~2.1.1",

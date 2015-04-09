@@ -94,6 +94,7 @@ $(function() {
 
         pageNumber = typeof pageNumber !== 'undefined' ? pageNumber : 0;
 
+        $('#list').empty();
 
         if (pageNumber > 0) {
             $('#pagination').pagination('drawPage', pageNumber);
@@ -113,14 +114,10 @@ $(function() {
     }
 
     function showFiles(pageNumber) {
-        var files = $('.file');
-        if (files.length) {
-            files.each(function(index, element) {
-                element.remove();
-            })
-        }
 
         var jlist = $("#list");
+
+        jlist.empty();
 
         filesData.reverse()
             .forEach(function(file) {

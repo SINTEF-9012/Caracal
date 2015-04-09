@@ -85,20 +85,28 @@ $(function() {
         nextText: '&raquo;',
         displayedPages: 8,
         onPageClick: function(pageNumber) {
-            showFiles(pageNumber);
+            refreshFiles(pageNumber);
         }
     });
 
     function refreshFiles(pageNumber) {
-        pageNumber = typeof pageNumber !== 'undefined' ? pageNumber : 1;
 
-        $('#pagination').pagination('drawPage', pageNumber);
 
-        $.getJSON('/files', function(data) {
-            filesData = {};
-            filesData = data;
+        pageNumber = typeof pageNumber !== 'undefined' ? pageNumber : 0;
 
-            $('#pagination').pagination('updateItems', data.length);
+
+        if (pageNumber > 0) {
+            $('#pagination').pagination('drawPage', pageNumber);
+        }
+
+        $.getJSON('/paginateFiles/'+(pageNumber-1), {pageSize: itemsOnPage},function(data) {
+            filesData = data.files;
+
+            $('#pagination').pagination('updateItems', data.count);
+            if (pageNumber === 0) {
+                $('#pagination').pagination('drawPage', Math.ceil(data.count/itemsOnPage));
+            }
+
 
             showFiles(pageNumber);
         });
@@ -114,7 +122,7 @@ $(function() {
 
         var jlist = $("#list");
 
-        filesData.slice(((pageNumber - 1) * itemsOnPage), (pageNumber * itemsOnPage)).reverse()
+        filesData.reverse()
             .forEach(function(file) {
                 var path = '/' + file.hash + '.' + file.extension;
 

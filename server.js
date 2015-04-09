@@ -60,13 +60,19 @@ app.get('/files', function(req, res) {
 app.get('/paginateFiles/:page', function(req, res) {
 	var pageSize = req.query.hasOwnProperty('pageSize') ?
 			Math.max(2, parseInt(req.query.pageSize)) : 10,
-		page = Math.max(0, parseInt(req.params.page));
+		page = Math.max(-1, parseInt(req.params.page));
+
 
 	var req = filesDb.find({});
 
-	req.sort({mtime: 1});
-	req.skip(pageSize * page);
-	req.limit(pageSize);
+	if (page >= 0) {
+		req.sort({mtime: 1});
+		req.skip(pageSize * page);
+		req.limit(pageSize);
+	} else {
+		req.sort({mtime: -1});
+		req.limit(pageSize);
+	}
 
 	req.exec(function(err, docs) {
 		var req = filesDb.count({}, function(err, count) {

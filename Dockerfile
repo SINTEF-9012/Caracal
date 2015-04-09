@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update
 RUN apt-get install -y curl wget software-properties-common graphicsmagick git git-core
-RUN add-apt-repository -y ppa:jon-severinsson/ffmpeg
+RUN add-apt-repository -y ppa:mc3man/trusty-media
 RUN apt-get update
 RUN apt-get install -y ffmpeg
 

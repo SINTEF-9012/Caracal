@@ -28,6 +28,7 @@ var filesDb = new Nedb({filename: datapath+'files.db', autoload:true}),
 	picturesSizeDb = new Nedb({filename: datapath+'picturesSizes.db', autoload:true});
 
 filesDb.ensureIndex({ fieldName: 'url', unique: true, sparse: true });
+filesDb.ensureIndex({ fieldName: 'mtime', unique: false, sparse: true });
 
 var gmWorker = async.queue(function(task, callback) {
 	task(callback);

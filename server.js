@@ -60,8 +60,8 @@ app.get('/files', function(req, res) {
 
 app.get('/paginateFiles/:page', function(req, res) {
 	var pageSize = req.query.hasOwnProperty('pageSize') ?
-			Math.max(2, parseInt(req.query.pageSize)) : 10,
-		page = Math.max(-1, parseInt(req.params.page));
+			Math.max(2, (parseInt(req.query.pageSize) || 0)) : 10,
+		page = Math.max(-1, (parseInt(req.params.page) || 0));
 
 
 	var req = filesDb.find({});

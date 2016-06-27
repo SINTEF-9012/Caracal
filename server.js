@@ -15,9 +15,17 @@ var express = require('express'),
 	Nedb = require('nedb'),
 	ffmpeg = require('fluent-ffmpeg');
 
-var config = require('./config.json');
+var config = {
+	port: process.env.HTTP_PORT || 8075,
+	cache: process.env.CACHE || "max-age=290304000, public",
+	"User-Agent": process.env.UA || "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:28.0) Gecko/20100101 Firefox/28.0",
+	"deletions-key": process.env.DELETIONS_KEY || "caracal18",
+	auths: process.env.AUTHS ? JSON.parse(process.env.AUTHS) : {},
+	concurrency: process.env.CONCURRENCY ? parseInt(process.env.CONCURRENCY) : 8,
+	datapath: process.env.DATAPATH || './',
+};
 
-var datapath = process.env.CARACAL_DATAPATH || config.datapath;
+var datapath = config.datapath;
 if (datapath.slice(-1) !== '/') {
 	datapath += '/';
 }

@@ -301,7 +301,18 @@ function sendThumbnail(path, res) {
 	});
 }
 
+function closestInArray(array, goal) {
+  return array.reduce((prev, curr) => 
+      Math.abs(curr - goal) < Math.abs(prev - goal) ? curr : prev);
+}
+
 function sendResizedImage(path, width, height, deform, res) {
+	// If only a set of sizes is allowed, use the closest sizes
+	if (Array.isArray(config.allowedSizes)) {
+		width = closestInArray(config.allowedSizes, width);
+		height = closestInArray(config.allowedSizes, height);
+	}
+
 	var resizedPath = "/"+width+"x"+height+(deform ? "-deform-" : "-" ) + path,
 		fullResizedPath = uploadDatapath+resizedPath,
 		uploadPath = uploadDatapath+"/"+path;
@@ -339,6 +350,8 @@ function sendResizedImage(path, width, height, deform, res) {
 }
 
 function sendConvertedVideo(path, format, size, res) {
+	size = closestInArray(config.allowedVideoSizes, size);
+
 	var convertedPath = "/ffmpeg-"+path+"-"+size+"."+format,
 		fullConvertedPath = uploadDatapath+"/"+convertedPath,
 		uploadPath = uploadDatapath+"/"+path;
@@ -535,7 +548,7 @@ app.get(/^\/resize\/(deform\/)?(\d+)\/(\d+)\/https?:\/\/?.+$/, (req, res) => {
 	}, res);
 });
 
-app.get(/^\/convert\/(mp4|webm)\/(1080|720|480|240)\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, (req, res) => {
+app.get(/^\/convert\/(mp4|webm)\/(\d+)\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, (req, res) => {
 	var path = req.params[2],
 		format = req.params[0];
 		size = parseInt(req.params[1]);
@@ -543,7 +556,7 @@ app.get(/^\/convert\/(mp4|webm)\/(1080|720|480|240)\/([a-fA-F0-9]{40}\.[a-zA-Z0-
 	sendConvertedVideo(path, format, size, res);
 });
 
-app.get(/^\/convert\/(mp4|webm)\/(1080|720|480|240)\/(https?:\/\/?.+)$/, (req, res) => {
+app.get(/^\/convert\/(mp4|webm)\/(\d+)\/(https?:\/\/?.+)$/, (req, res) => {
 	var path = req.params[2],
 		format = req.params[0],
 		size = parseInt(req.params[1]);

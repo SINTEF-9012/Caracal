@@ -1,10 +1,10 @@
 {
-  "name": "Caracal",
+  "name": "caracal",
   "description": "Light media server",
   "version": "1.4.1",
   "dependencies": {
-    "jquery-file-upload": "~9.9.3",
-    "jquery": "~2.1.1",
+    "jquery-file-upload": "~9.12.5",
+    "jquery": "~3.0.0",
     "bootstrap": "~3.3.4",
     "jquery.simplePagination": "*"
   }

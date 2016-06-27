@@ -13,7 +13,6 @@ var express = require('express'),
 	gm = require('gm'),
 	async = require('async'),
 	Nedb = require('nedb'),
-	retricon = require('retricon'),
 	ffmpeg = require('fluent-ffmpeg');
 
 var config = require('./config.json');
@@ -488,31 +487,6 @@ app.get(/^\/resize\/(deform\/)?(\d+)\/(\d+)\/https?:\/\/?.+$/, function(req, res
 	fetchDistantFile(path, false, function(filepath, hash, extension) {
 		sendResizedImage(hash+"."+extension, width, height, deform, res);
 	}, res);
-});
-
-app.get('/identicon/:hash', function(req, res) {
-	var style = (req.query.style && retricon.style.hasOwnProperty(req.query.style)) ? req.query.style : 'window';
-	var hash = crypto.createHash('sha1').update(req.params.hash).digest('hex');
-	var path = datapath+'identicons/'+hash+'-'+style+'.png';
-	fs.exists(path, function(exists) {
-
-		if (exists) {
-			res.header('Cache-Control', config.cache);
-			res.sendFile(path, {root: __dirname});
-		} else {
-			gmWorker.push(function(callback){
-				retricon(req.params.hash, retricon.style[style]).write(path, callback);
-			}, function(err) {
-				if (err) {
-					res.status(500).send(err);
-					return;
-				}
-
-				res.header('Cache-Control', config.cache);
-				res.sendFile(path, {root: __dirname});
-			});
-		}
-	});
 });
 
 app.get(/^\/convert\/(mp4|webm)\/(1080|720|480|240)\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, function(req, res) {

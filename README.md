@@ -14,6 +14,10 @@ _GraphicsMagick or ImageMagick is required. FFmpeg (not libav) is necessary for 
 
 ```docker pull yellowiscool/caracal```
 
+### Notes about the scalability
+
+Caracal is designed to run as a single node on a single server. It does not support horizontal scaling. It is suitable for prototyping or simple non-critical multimedia applications, but it cannot be used to compete with Youtube or Imgur (yet).
+
 ### Features
 
  * File uploads

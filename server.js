@@ -567,5 +567,5 @@ app.get(/^\/convert\/(mp4|webm)\/(\d+)\/(https?:\/\/?.+)$/, (req, res) => {
 });
 
 var server = app.listen(config.port, () => {
-	console.log("Server started on http://localhost:"+serverPort+"/");
+	console.log("Server started on http://localhost:"+config.port+"/");
 });

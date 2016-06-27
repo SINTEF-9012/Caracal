@@ -16,13 +16,51 @@ var express = require('express'),
 	ffmpeg = require('fluent-ffmpeg');
 
 var config = {
+	// Listening HTTP Port
 	port: process.env.HTTP_PORT || 8075,
+
+	// HTTP Cache value for the stored files
 	cache: process.env.CACHE || "max-age=290304000, public",
+
+	// The user agent used by the HTTP client to fetch distant files
 	"User-Agent": process.env.UA || "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:28.0) Gecko/20100101 Firefox/28.0",
+
+	// A password required to delete files.
+	// /!\ Please change it. /!\
 	"deletions-key": process.env.DELETIONS_KEY || "caracal18",
+
+	// An authentication association table (object) used for basic HTTP authentifications
+	// keys are the host-names, values are the passwords
 	auths: process.env.AUTHS ? JSON.parse(process.env.AUTHS) : {},
+
+	// Number of allowed concurrent GraphicsMagick processes
 	concurrency: process.env.CONCURRENCY ? parseInt(process.env.CONCURRENCY) : 8,
+
+	// Number of allowed concurrent FFmpeg processes
+	// Is CONCURRENCY divided by 4 by default
+	videoConcurrency: process.env.VIDEO_CONCURRENCY ? parseInt(process.env.VIDEO_CONCURRENCY) : (
+		process.env.CONCURRENCY ? Math.min(Math.round(parseInt(process.env.CONCURRENCY)/4)) : 2
+		),
+
+	// Location of the storage folder, server side
 	datapath: process.env.DATAPATH || './',
+
+	// Array of allowed resizing sizes
+	// So the user cannot ask every resized image pixel by pixel
+	// If a requested size is not found, the closest size from this array is used.
+	// Define it to '*' to allow every size (not recommended)
+	// The default configuration contains many sizes, you might want to use fewer sizes
+	allowedSizes: process.env.ALLOWED_SIZES ? JSON.parse(process.env.ALLOWED_SIZES) :
+		[	32, 64, 128, 256, 1024, 2048, 4096, 8192, 16384,
+			50, 100, 200, 400, 500, 600, 800, 1000, 1050, 1200, 1600,
+			120, 160, 240, 320, 480, 576, 640, 768, 854, 960, 1050, 1080,
+			1152, 1280, 1440, 1536,  1716, 1920, 2160, 2560, 3200,
+			3840, 3996, 4320, 4800, 5120, 6400, 6144, 7680, 12288,
+		],
+
+	// Array of allowed resizing video size. This MUST be an array
+	allowedVideoSizes: process.env.ALLOWED_VIDEO_SIZES ? JSON.parse(process.env.ALLOWED_VIDEO_SIZES) :
+		[ 144, 240, 360, 480, 720, 1080, 3840],
 };
 
 var datapath = config.datapath;
@@ -39,11 +77,11 @@ filesDb.ensureIndex({ fieldName: 'mtime', unique: false, sparse: true });
 
 var gmWorker = async.queue((task, callback) => {
 	task(callback);
-}, process.env.CARACAL_CONCURRENCY || config.concurrency);
+}, config.concurrency);
 
 var ffmpegWorker = async.queue((task, callback) => {
 	task(callback);
-}, Math.min(Math.round((process.env.CARACAL_CONCURRENCY || config.concurrency)/4), 1));
+}, config.videoConcurrency);
 
 var app = express();
 
@@ -158,7 +196,7 @@ app.post('/upload', (req, res) => {
 
 app.get(/^\/remove\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, (req, res) => {
 
-	var deletionsKey = process.env.CARACAL_DELETIONS_KEY || config['deletions-key'];
+	var deletionsKey = config['deletions-key'];
 	if (deletionsKey && deletionsKey !== req.query.key) {
 		res.status(403).send('Missing or wrong deletions key');
 		return;
@@ -515,7 +553,6 @@ app.get(/^\/convert\/(mp4|webm)\/(1080|720|480|240)\/(https?:\/\/?.+)$/, (req, r
 	}, res);
 });
 
-var serverPort = process.env.CARACAL_PORT || config.port;
-var server = app.listen(serverPort, () => {
+var server = app.listen(config.port, () => {
 	console.log("Server started on http://localhost:"+serverPort+"/");
 });

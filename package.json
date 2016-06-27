@@ -1,7 +1,7 @@
 {
   "name": "caracal",
   "description": "Light multimedia server",
-  "version": "1.4.1",
+  "version": "2.0.0",
   "homepage": "https://github.com/SINTEF-9012/Caracal",
   "dependencies": {
     "async": "^2.0.0-rc.6",

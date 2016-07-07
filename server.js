@@ -73,6 +73,11 @@ if (datapath.slice(-1) !== '/') {
 }
 var uploadDatapath = datapath+"uploads";
 
+// Create the uploads folder if necessary
+if (!fs.existsSync(uploadDatapath)){
+  fs.mkdirSync(uploadDatapath);
+}
+
 var filesDb = new Nedb({filename: datapath+'files.db', autoload:true}),
 	picturesSizeDb = new Nedb({filename: datapath+'picturesSizes.db', autoload:true});
 

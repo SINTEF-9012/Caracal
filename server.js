@@ -44,7 +44,7 @@ var config = {
 		),
 
 	// Location of the storage folder, server side
-	datapath: process.env.DATAPATH || './',
+	datapath: process.env.DATAPATH || './data',
 
 	// Array of allowed resizing sizes
 	// So the user cannot ask every resized image pixel by pixel

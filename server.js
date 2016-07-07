@@ -13,7 +13,8 @@ var express = require('express'),
 	gm = require('gm'),
 	async = require('async'),
 	Nedb = require('nedb'),
-	ffmpeg = require('fluent-ffmpeg');
+	ffmpeg = require('fluent-ffmpeg'),
+	cors = require('cors');
 
 var config = {
 	// Listening HTTP Port
@@ -61,6 +62,9 @@ var config = {
 	// Array of allowed resizing video size. This MUST be an array
 	allowedVideoSizes: process.env.ALLOWED_VIDEO_SIZES ? JSON.parse(process.env.ALLOWED_VIDEO_SIZES) :
 		[ 144, 240, 360, 480, 720, 1080, 3840],
+
+	// List of allowed domains for CORS
+	allowedDomains: process.env.ALLOWED_DOMAINS ? JSON.parse(process.env.ALLOWED_DOMAINS) : '*',
 };
 
 var datapath = config.datapath;
@@ -93,6 +97,18 @@ app.use((req, res, next) => {
 	res.header("Access-Control-Allow-Headers", "X-Requested-With");
 	next();
 });
+
+if (Array.isArray(config.allowedDomains)) {
+	app.use(cors({
+	  origin: function(origin, callback){
+	    var originIsWhitelisted = config.allowedDomains.indexOf(origin) !== -1;
+	    callback(null, originIsWhitelisted);
+	  }
+	}));
+}
+else {
+	app.use(cors());
+}
 
 app.use(express.static(__dirname + '/public'));
 app.use(express.static(path.resolve(uploadDatapath)));

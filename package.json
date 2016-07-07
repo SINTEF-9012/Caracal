@@ -7,6 +7,7 @@
     "async": "^2.0.0-rc.6",
     "bower": "^1.4.1",
     "compression": "^1.4.3",
+    "cors": "^2.7.1",
     "express": "~4.14.0",
     "fluent-ffmpeg": "^2.0.0-rc3",
     "follow-redirects": "0.2.0",

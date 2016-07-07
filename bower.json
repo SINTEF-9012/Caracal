@@ -1,7 +1,7 @@
 {
   "name": "caracal",
   "description": "Light media server",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "dependencies": {
     "jquery-file-upload": "~9.12.5",
     "jquery": "~3.0.0",

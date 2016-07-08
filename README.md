@@ -12,11 +12,18 @@ _GraphicsMagick or ImageMagick is required. FFmpeg (not libav) is necessary for 
 
 ### [Docker](https://registry.hub.docker.com/u/yellowiscool/caracal/)
 
-```docker pull yellowiscool/caracal```
+```sh
+docker pull yellowiscool/caracal
 
-### Notes about the scalability
+docker volume create --name caracal-data
 
-Caracal is designed to run as a single node on a single server. It does not support horizontal scaling. It is suitable for prototyping or simple non-critical multimedia applications, but it cannot be used to compete with Youtube or Imgur (yet). In case of a high load, a processing queue is used.
+docker run -d --restart=always \
+  --name caracal \
+  -v caracal-data:/usr/src/app/data \
+  -e DELETIONS_KEY=secretkey \
+  yellowiscool/caracal
+```
+
 
 ### Features
 
@@ -35,6 +42,29 @@ Caracal is designed to run as a single node on a single server. It does not supp
   * Drag and drop support
   * Progression bar for slow connexions
   * Thumbnails and pagination
+
+### Notes about the scalability
+
+Caracal is designed to run as a single node on a single server. It does not support horizontal scaling. It is suitable for prototyping or simple non-critical multimedia applications, but it cannot be used to compete with Youtube or Imgur (yet). In case of a high load, a processing queue is used.
+
+## Configuration
+
+Caracal can be configured using environment variables.
+
+|Environment Variable|Description|Default value|
+|--------------------|-----------|-------------|
+|DELETIONS_KEY|The required password/key to delete files.|*needs to be configured*|
+|ALLOWED_DOMAINS|Optionnal JSON array of allowed domains, for |[CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)|`*` (all domains are allowed)|
+|HTTP_PORT|Listening HTTP port|8075|
+|DATAPATH|Location of the storage folder|`./data`|
+|CACHE|[HTTP Cache-Control header](https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.9)|`max-age=29030400, public`|
+|CONCURRENCY|Number of allowed concurrent image processing tasks|8|
+|VIDEO_CONCURRENCY|Number of allowed concurrent video processing tasks|2|
+|ALLOWED_SIZES|Array of allowed resizing sizes. If a requested size is not found, the closest size from this array is used instead. Set to `*` to allow every size, but it's not recommended since users can saturate the server by resizing the same image many times. The default configuration allows many sizes, you might want to use fewer sizes.|`[32, 64, 128, 256, 1024, 2048, 4096, 8192, 16384,	50, 100, 200, 400, 500, 600, 800, 1000, 1050, 1200, 1600, 120, 160, 240, 320, 480, 576, 640, 768, 854, 960, 1050, 1080, 1152, 1280, 1440, 1536,  1716, 1920, 2160, 2560, 3200,	3840, 3996, 4320, 4800, 5120, 6400, 6144, 7680, 12288]`|
+|ALLOWED_VIDEO_SIZES|Array of allowed resizing sizes, for videos. Similar to ALLOWED_SIZES.|`[144, 240, 360, 480, 720, 1080, 3840]`|
+|AUTHS|JSON association table (object) used for HTTP [basic access authentications](https://en.wikipedia.org/wiki/Basic_access_authentication#Client_side), when fetching distant files. keys are the host-names, values are the passwords.|`{}`|
+|UA|The HTTP client user agent, to fetch distant files|~Firefox28-Win64|
+
 
 ## API
 

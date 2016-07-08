@@ -54,7 +54,7 @@ Caracal can be configured using environment variables.
 |Environment Variable|Description|Default value|
 |--------------------|-----------|-------------|
 |DELETIONS_KEY|The required password/key to delete files.|*needs to be configured*|
-|ALLOWED_DOMAINS|Optionnal JSON array of allowed domains, for |[CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)|`*` (all domains are allowed)|
+|ALLOWED_DOMAINS|Optionnal JSON array of allowed domains, for [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)|`*` (all domains are allowed)|
 |HTTP_PORT|Listening HTTP port|8075|
 |DATAPATH|Location of the storage folder|`./data`|
 |CACHE|[HTTP Cache-Control header](https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.9)|`max-age=29030400, public`|

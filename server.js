@@ -189,7 +189,7 @@ app.post('/upload', (req, res) => {
 
 			fs.exists(path, (exists) => {
 				if (exists) {
-					fs.unlink(f.path);
+					fs.unlink(f.path, () => {});
 					res.send({name: f.name, status: 'exists', hash: f.hash, extension: extension});
 				} else {
 
@@ -228,7 +228,7 @@ app.get(/^\/remove\/([a-fA-F0-9]{40,64}\.[a-zA-Z0-9]+)$/, (req, res) => {
 
 	var	uploadPath = uploadDatapath+"/"+path;
 
-	fs.unlink(uploadPath);
+	fs.unlink(uploadPath, () => {});
 
 	var hashAndExtension = path.split('.');
 	var hash = hashAndExtension[0],
@@ -241,7 +241,7 @@ app.get(/^\/remove\/([a-fA-F0-9]{40,64}\.[a-zA-Z0-9]+)$/, (req, res) => {
 		}
 	
 		docs.forEach((doc) => {
-			fs.unlink(doc.unlink);
+			fs.unlink(doc.unlink, () => {});
 		});
 
 		picturesSizeDb.remove({path: path});
@@ -424,7 +424,7 @@ function sendConvertedVideo(path, format, size, res) {
 							res.status(500).send(err.message);
 							fs.exists(fullConvertedPath, (exists) => {
 								if (exists) {
-									fs.unlink(fullConvertedPath);	
+									fs.unlink(fullConvertedPath, () => {});
 								}
 							});
 							callback();
@@ -505,7 +505,7 @@ function fetchDistantFile(u2, res, callback, reserror) {
 					fs.exists(path, (exists) => {
 						if (exists) {
 							// Just remove the temporary file, we don't need it
-							fs.unlink(temppath);
+							fs.unlink(temppath, () => {});
 						} else {
 							fs.rename(temppath, path);
 						}

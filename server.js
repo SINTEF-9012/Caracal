@@ -152,7 +152,7 @@ app.get('/paginateFiles/:page', (req, res) => {
 
 });
 
-app.get(/^\/resize\/(deform\/)?(\d+)\/(\d+)\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, (req, res) => {
+app.get(/^\/resize\/(deform\/)?(\d+)\/(\d+)\/([a-fA-F0-9]{40,64}\.[a-zA-Z0-9]+)$/, (req, res) => {
 	var path = req.params[3],
 		width = parseInt(req.params[1]),
 		height = parseInt(req.params[2]),
@@ -161,7 +161,7 @@ app.get(/^\/resize\/(deform\/)?(\d+)\/(\d+)\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, 
 	sendResizedImage(path, width, height, deform, res);
 });
 
-app.get(/^\/thumbnail\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, (req, res) => {
+app.get(/^\/thumbnail\/([a-fA-F0-9]{40,64}\.[a-zA-Z0-9]+)$/, (req, res) => {
 	var path = req.params[0];
 	sendThumbnail(path, res);
 });
@@ -170,7 +170,7 @@ app.post('/upload', (req, res) => {
 	var form = new formidable.IncomingForm();
 	form.uploadDir = uploadDatapath;
 	form.keepExtensions = true;
-	form.hash = 'sha1';
+	form.hash = 'sha256';
 
 	form.parse(req, (err, fields, files) => {
 		if (err || !files) {
@@ -215,7 +215,7 @@ app.post('/upload', (req, res) => {
 	})
 });
 
-app.get(/^\/remove\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, (req, res) => {
+app.get(/^\/remove\/([a-fA-F0-9]{40,64}\.[a-zA-Z0-9]+)$/, (req, res) => {
 
 	var deletionsKey = config['deletions-key'];
 	if (deletionsKey && deletionsKey !== req.query.key) {
@@ -230,8 +230,9 @@ app.get(/^\/remove\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, (req, res) => {
 
 	fs.unlink(uploadPath);
 
-	var hash = path.slice(0, 40),
-		extension = path.slice(41);
+	var hashAndExtension = path.split('.');
+	var hash = hashAndExtension[0],
+		extension = hashAndExtension[1];
 
 	picturesSizeDb.find({path: path}, (err, docs) => {
 		if (err) {
@@ -488,7 +489,7 @@ function fetchDistantFile(u2, res, callback, reserror) {
 
 				var file = fs.createWriteStream(temppath);
 
-				var hash = crypto.createHash('sha1');
+				var hash = crypto.createHash('sha256');
 				var size = 0;
 				httpres.on('data', (data) => {
 					hash.update(data);
@@ -569,7 +570,7 @@ app.get(/^\/resize\/(deform\/)?(\d+)\/(\d+)\/https?:\/\/?.+$/, (req, res) => {
 	}, res);
 });
 
-app.get(/^\/convert\/(mp4|webm)\/(\d+)\/([a-fA-F0-9]{40}\.[a-zA-Z0-9]+)$/, (req, res) => {
+app.get(/^\/convert\/(mp4|webm)\/(\d+)\/([a-fA-F0-9]{40,64}\.[a-zA-Z0-9]+)$/, (req, res) => {
 	var path = req.params[2],
 		format = req.params[0];
 		size = parseInt(req.params[1]);

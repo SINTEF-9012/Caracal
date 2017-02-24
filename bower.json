@@ -3,8 +3,8 @@
   "description": "Light media server",
   "version": "2.1.0",
   "dependencies": {
-    "jquery-file-upload": "~9.12.5",
-    "jquery": "~3.0.0",
+    "jquery-file-upload": "~9.17.0",
+    "jquery": "~3.1.1",
     "bootstrap": "~3.3.4",
     "jquery.simplePagination": "*"
   },

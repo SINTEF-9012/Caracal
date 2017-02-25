@@ -139,6 +139,11 @@ $(function() {
                 var fileId = file.id;
                 var pathUsingId = '/' + file.id;
 
+                if (!fileId) {
+                	fileId = file.hash + '.' + file.extension;
+                	pathUsingId = path;
+                }
+
                 j.children('a').attr('href', pathUsingId);
 
                 if (/^(video|image)\//.test(file.type)) {

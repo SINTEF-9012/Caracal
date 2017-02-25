@@ -97,12 +97,6 @@ var app = express();
 app.use(compression());
 app.use(morgan('short'));
 
-app.use((req, res, next) => {
-	res.header("Access-Control-Allow-Origin", "*");
-	res.header("Access-Control-Allow-Headers", "X-Requested-With");
-	next();
-});
-
 if (Array.isArray(config.allowedDomains)) {
 	app.use(cors({
 	  origin: function(origin, callback){

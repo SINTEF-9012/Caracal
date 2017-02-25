@@ -72,11 +72,16 @@ var config = {
 
 // Generation of ids
 // The ids must never start by http: or https:
-// They should never have path characters (such as ., /, and \)
+// They should never have path characters
+// Accepted characters
+//    a-z A-Z 0-9 _-
+// No accepted (and many others)
+//    : / \ . < > ( ) [ ]
+// GenerateId has the sha256 checksum as optional argument
 var generateId = (hash) => hash;
 switch (config.idsGeneration) {
-	// The id is the SHA256 hash
 	case 'hash':
+		// Just return the hash
 		break;
 	case 'shortid':
 		var shortid = require('shortid');
@@ -158,6 +163,15 @@ app.get('/files', (req, res) => {
 	});
 });
 
+app.get(/^\/([a-zA-Z0-9_\-]+)$/, (req, res) => {
+	var id = req.params[0];
+	convertIdToHashAndPath(id, (infos) => {
+		res.sendFile(infos.fullPath, {root: __dirname});
+	}, () => {
+		res.status(404).send("File not found.");
+	});
+});
+
 app.get('/paginateFiles/:page', (req, res) => {
 	var pageSize = req.query.hasOwnProperty('pageSize') ?
 			Math.max(2, (parseInt(req.query.pageSize) || 0)) : 10,
@@ -198,9 +212,31 @@ app.get(/^\/resize\/(deform\/)?(\d+)\/(\d+)\/([a-fA-F0-9]{40,64}\.[a-zA-Z0-9]+)$
 	sendResizedImage(path, width, height, deform, res);
 });
 
+app.get(/^\/resize\/(deform\/)?(\d+)\/(\d+)\/([a-zA-Z0-9_\-]+)$/, (req, res) => {
+	var id = req.params[3],
+		width = parseInt(req.params[1]),
+		height = parseInt(req.params[2]),
+		deform = !!req.params[0];
+
+	convertIdToHashAndPath(id, (infos) => {
+		sendResizedImage(infos.path, width, height, deform, res);
+	}, () => {
+		res.status(404).send("File not found.");
+	});
+});
+
 app.get(/^\/thumbnail\/([a-fA-F0-9]{40,64}\.[a-zA-Z0-9]+)$/, (req, res) => {
 	var path = req.params[0];
 	sendThumbnail(path, res);
+});
+
+app.get(/^\/thumbnail\/([a-zA-Z0-9_\-]+)$/, (req, res) => {
+	var id = req.params[0];
+	convertIdToHashAndPath(id, (infos) => {
+		sendThumbnail(infos.path, res);
+	}, () => {
+		res.status(404).send("File not found.");
+	});
 });
 
 app.post('/upload', (req, res) => {
@@ -239,7 +275,7 @@ app.post('/upload', (req, res) => {
 				} else {
 
 					fs.rename(f.path, path, () => {
-						convertHashToId(f.hash, (beautifulId) => {
+						convertHashToId(f.hash, extension, (beautifulId) => {
 							var documentInfos = {
 								name: f.name,
 								id: beautifulId,
@@ -264,15 +300,27 @@ app.post('/upload', (req, res) => {
 });
 
 app.get(/^\/remove\/([a-fA-F0-9]{40,64}\.[a-zA-Z0-9]+)$/, (req, res) => {
+	var path = req.params[0];
+	removeFile(path, req, res);
+});
+
+app.get(/^\/remove\/([a-zA-Z0-9_\-]+)$/, (req, res) => {
+	var id = req.params[0];
+
+	convertIdToHashAndPath(id, (infos) => {
+		removeFile(infos.path, req, res);
+	}, () => {
+		res.status(404).send("File not found.");
+	});
+});
+
+function removeFile(path, req, res) {
 
 	var deletionsKey = config['deletions-key'];
 	if (deletionsKey && deletionsKey !== req.query.key) {
 		res.status(403).send('Missing or wrong deletions key');
 		return;
 	}
-
-	var path = req.params[0];
-
 
 	var	uploadPath = uploadDatapath+"/"+path;
 
@@ -305,14 +353,28 @@ app.get(/^\/remove\/([a-fA-F0-9]{40,64}\.[a-zA-Z0-9]+)$/, (req, res) => {
 			res.send({numRemoved:numRemoved});
 		});
 	});
-});
+};
 
 app.get(/^\/details\/([a-fA-F0-9]{40,64}\.[a-zA-Z0-9]+)$/, (req, res) => {
 	var path = req.params[0];
 	var hashAndExtension = path.split('.');
 	var hash = hashAndExtension[0],
 		extension = hashAndExtension[1];
-	
+
+	fileDetails(hash, extension, res);
+});
+
+app.get(/^\/details\/([a-zA-Z0-9_\-]+)$/, (req, res) => {
+	var id = req.params[0];
+
+	convertIdToHashAndPath(id, (infos) => {
+		fileDetails(infos.hash, infos.extension, res);
+	}, () => {
+		res.status(404).send("File not found.");
+	});
+});
+
+function fileDetails(hash, extension, res) {
 	filesDb.findOne({hash, extension}, (err, doc) => {
 		if (doc) {
 			delete doc._id;
@@ -321,7 +383,7 @@ app.get(/^\/details\/([a-fA-F0-9]{40,64}\.[a-zA-Z0-9]+)$/, (req, res) => {
 			res.status(404).send("File not found, sorry");
 		}
 	});
-});
+};
 
 function createThumbnail(path, uploadPath, thumbnailPath, res) {
 	gmWorker.push((callback) => {
@@ -574,7 +636,7 @@ function fetchDistantFile(u2, res, callback, reserror) {
 							// Just remove the temporary file, we don't need it
 							fs.unlink(temppath, () => {});
 						} else {
-							fs.rename(temppath, path);
+							fs.rename(temppath, path, () => {});
 						}
 					});
 
@@ -583,7 +645,7 @@ function fetchDistantFile(u2, res, callback, reserror) {
 						name = "untitled";
 					}
 
-					convertHashToId(hash, (beautifulId) => {
+					convertHashToId(hash, extension, (beautifulId) => {
 						var fileDetails = {
 							url: u2,
 							name: name,
@@ -630,6 +692,7 @@ function generateUniqueId(hash, callback, nbIters) {
 	idsDb.findOne({id}, (err, doc) => {
 		// If we find a collision
 		if (doc) {
+			console.log("/!\\ ID generation collision detected.");
 			generateUniqueId(hash, callback, nbIters-1);
 		} else {
 			callback(id);
@@ -639,15 +702,28 @@ function generateUniqueId(hash, callback, nbIters) {
 
 // Takes a hash as input and returns an id.
 // This modifies the database
-function convertHashToId(hash, callback) {
+function convertHashToId(hash, extension, callback) {
 	idsDb.findOne({hash}, (err, doc) => {
 		if (doc) {
 			callback(doc.id);
 		} else {
 			generateUniqueId(hash, (id) => {
-				idsDb.insert({hash, id});
+				idsDb.insert({hash, id, extension});
 				callback(id);
 			}, 5);
+		}
+	});
+}
+
+// Takes an id as input, and returns a hash, the extension, and the associated path
+function convertIdToHashAndPath(id, callbackSuccess, callbackError) {
+	idsDb.findOne({id}, (err, doc) => {
+		if (doc) {
+			doc.path = doc.hash+"."+doc.extension;
+			doc.fullPath = uploadDatapath+"/"+doc.path;
+			callbackSuccess(doc);
+		} else {
+			callbackError(err);
 		}
 	});
 }
@@ -688,6 +764,18 @@ app.get(/^\/convert\/(mp4|webm)\/(\d+)\/([a-fA-F0-9]{40,64}\.[a-zA-Z0-9]+)$/, (r
 		size = parseInt(req.params[1]);
 	
 	sendConvertedVideo(path, format, size, res);
+});
+
+app.get(/^\/convert\/(mp4|webm)\/(\d+)\/([a-zA-Z0-9_\-]+)$/, (req, res) => {
+	var id = req.params[2],
+		format = req.params[0],
+		size = parseInt(req.params[1]);
+
+	convertIdToHashAndPath(id, (infos) => {
+		sendConvertedVideo(infos.path, format, size, res);
+	}, () => {
+		res.status(404).send("File not found.");
+	});
 });
 
 app.get(/^\/convert\/(mp4|webm)\/(\d+)\/(https?:\/\/?.+)$/, (req, res) => {

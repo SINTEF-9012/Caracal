@@ -135,16 +135,20 @@ $(function() {
                 var details = date.toLocaleString() + "<br/>" + bytesToSize(file.size);
 
                 j.attr('id', path);
-                j.children('a').attr('href', path);
+
+                var fileId = file.id;
+                var pathUsingId = '/' + file.id;
+
+                j.children('a').attr('href', pathUsingId);
 
                 if (/^(video|image)\//.test(file.type)) {
                     j.find('.icon').empty().append($('<img/>').attr('src', '/thumbnail' + path))
                     
                     if (/^image\//.test(file.type)) {
-                        details += "<br/><a href='/resize/640/480" + path + "'>x480</a> - <a href='/resize/1280/720" + path + "'>x720</a> - <a href='/resize/1920/1080" + path + "'>x1080</a>";
+                        details += "<br/><a href='/resize/640/480/" + fileId + "'>x480</a> - <a href='/resize/1280/720/" + fileId + "'>x720</a> - <a href='/resize/1920/1080/" + fileId + "'>x1080</a>";
                     } else {
-                        details += "<br/><a href='/convert/mp4/480" + path + "'>mp4 x480</a> - <a href='/convert/mp4/720" + path + "'>mp4 x720</a> - <a href='/convert/mp4/1080" + path + "'>mp4 x1080</a>"
-                            + "<br/><a href='/convert/webm/480" + path + "'>webm x480</a> - <a href='/convert/webm/720" + path + "'>webm x720</a> - <a href='/convert/webm/1080" + path + "'>webm x1080</a>";
+                        details += "<br/><a href='/convert/mp4/480/" + fileId + "'>mp4 x480</a> - <a href='/convert/mp4/720/" + fileId + "'>mp4 x720</a> - <a href='/convert/mp4/1080/" + fileId + "'>mp4 x1080</a>"
+                            + "<br/><a href='/convert/webm/480/" + fileId + "'>webm x480</a> - <a href='/convert/webm/720/" + fileId + "'>webm x720</a> - <a href='/convert/webm/1080/" + fileId + "'>webm x1080</a>";
                     }
                 }
 

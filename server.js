@@ -65,7 +65,39 @@ var config = {
 
 	// List of allowed domains for CORS
 	allowedDomains: process.env.ALLOWED_DOMAINS ? JSON.parse(process.env.ALLOWED_DOMAINS) : '*',
+
+	// Dependencie used to generate ids
+	idsGeneration: process.env.IDS_GENERATION ? process.env.IDS_GENERATION : 'sillyid',
 };
+
+console.log(config.idsGeneration);
+
+// Generation of ids
+// The ids must never start by http: or https:
+var generateId = (hash) => hash;
+switch (config.idsGeneration) {
+	// The id is the SHA256 hash
+	case 'hash':
+		break;
+	case 'shortid':
+		var shortid = require('shortid');
+		generateId = () => shortid.generate();
+		break;
+	case 'human-readable':
+		var humanreadableid = require('human-readable-ids').hri;
+		generateId = () => humanreadableid.random();
+		break;
+	case 'bronze':
+		var bronze = require('bronze');
+		var bronzeInstance = new bronze();
+		generateId = () => bronzeInstance.generate();
+		break;
+	case 'sillyid':
+	default:
+		var sillyid = require('sillyid');
+		var sillyidInstance = new sillyid();
+		generateId = () => sillyidInstance.generate();
+}
 
 var datapath = config.datapath;
 if (datapath.slice(-1) !== '/') {
@@ -78,11 +110,17 @@ if (!fs.existsSync(uploadDatapath)){
   fs.mkdirSync(uploadDatapath);
 }
 
+// Open the databases
 var filesDb = new Nedb({filename: datapath+'files.db', autoload:true}),
-	picturesSizeDb = new Nedb({filename: datapath+'picturesSizes.db', autoload:true});
+	picturesSizeDb = new Nedb({filename: datapath+'picturesSizes.db', autoload:true}),
+	idsDb = new Nedb({filename: datapath+'ids.db', autoload: true});
 
+// Create the indexes, sparse allows multiple documents with an undefined field
 filesDb.ensureIndex({ fieldName: 'url', unique: true, sparse: true });
 filesDb.ensureIndex({ fieldName: 'mtime', unique: false, sparse: true });
+idsDb.ensureIndex({ fieldName: 'id', unique: true, sparse: true });
+idsDb.ensureIndex({ fieldName: 'hash', unique: true, sparse: true });
+
 
 var gmWorker = async.queue((task, callback) => {
 	task(callback);
@@ -184,28 +222,42 @@ app.post('/upload', (req, res) => {
 			fs.exists(path, (exists) => {
 				if (exists) {
 					fs.unlink(f.path, () => {});
-					res.send({name: f.name, status: 'exists', hash: f.hash, extension: extension});
+					convertHashToId(f.hash, (beautifulId) => {
+						res.send({
+							name: f.name,
+							status: 'exists',
+							hash: f.hash,
+							id: beautifulId,
+							extension: extension,
+						});
+					});
 				} else {
 
 					fs.rename(f.path, path, () => {
-						filesDb.insert({
-							size: f.size,
-							hash: f.hash,
-							extension: extension,
-							type: f.type,
-							name: f.name,
-							mtime: f.lastModifiedDate
-						}, () => {
-							res.send({name: f.name, status: 'ok', hash: f.hash, extension: extension});
+						convertHashToId(f.hash, (beautifulId) => {
+							filesDb.insert({
+								size: f.size,
+								hash: f.hash,
+								id: beautifulId,
+								extension: extension,
+								type: f.type,
+								name: f.name,
+								mtime: f.lastModifiedDate,
+							}, () => {
+								res.send({
+									name: f.name,
+									status: 'ok',
+									hash: f.hash,
+									id: beautifulId,
+									extension: extension,
+								});
+							});
 						});
-				
 					});
 				}
 			});
 			return;
 		};
-
-
 	})
 });
 
@@ -239,6 +291,8 @@ app.get(/^\/remove\/([a-fA-F0-9]{40,64}\.[a-zA-Z0-9]+)$/, (req, res) => {
 		});
 
 		picturesSizeDb.remove({path: path});
+
+		idsDb.remove({hash});
 		
 		filesDb.remove({hash: hash, extension:extension}, {}, (err, numRemoved) => {
 			if (err) {
@@ -531,6 +585,45 @@ function fetchDistantFile(u2, res, callback, reserror) {
 					reserror.status(404).send(e.message);
 				}
 			});
+		}
+	});
+}
+
+// Generate an unique ID, checking existing ids in the database
+// Having a collision (a new id that is already used)
+// should be very unlikely.
+function generateUniqueId(hash, callback, nbIters) {
+	// We give up after a number of iterations
+	if (!nbIters || nbIters <= 0) {
+		callback(hash);
+		return;
+	}
+
+	// Generate an id using the selected algorithm
+	var id = generateId(hash);
+
+	// Look for collisions
+	idsDb.findOne({id}, (err, doc) => {
+		// If we find a collision
+		if (doc) {
+			generateUniqueId(hash, callback, nbIters-1);
+		} else {
+			callback(id);
+		}
+	});
+}
+
+// Takes a hash as input and returns an id.
+// This modifies the database
+function convertHashToId(hash, callback) {
+	idsDb.findOne({hash}, (err, doc) => {
+		if (doc) {
+			callback(doc.id);
+		} else {
+			generateUniqueId(hash, (id) => {
+				idsDb.insert({hash, id});
+				callback(id);
+			}, 5);
 		}
 	});
 }

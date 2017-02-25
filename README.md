@@ -42,6 +42,11 @@ docker run -d --restart=always \
   * Drag and drop support
   * Progression bar for slow connexions
   * Thumbnails and pagination
+ * Configurable generation of identifiers
+  * human readable
+  * adjective-adjective-animal
+  * shortid
+  * sha256
 
 ### Notes about the scalability
 
@@ -64,7 +69,7 @@ Caracal can be configured using environment variables.
 |ALLOWED_VIDEO_SIZES|Array of allowed resizing sizes, for videos. Similar to ALLOWED_SIZES.|`[144, 240, 360, 480, 720, 1080, 3840]`|
 |AUTHS|JSON association table (object) used for HTTP [basic access authentications](https://en.wikipedia.org/wiki/Basic_access_authentication#Client_side), when fetching distant files. keys are the host-names, values are the passwords.|`{}`|
 |UA|The HTTP client user agent, to fetch distant files|~Firefox28-Win64|
-
+|IDS_GENERATION|The algorithm used to generate identifiers. See the generation of identifiers section. Accepted values are sillyid, shortid, human-readable, bronze, and hash.|sillyid|
 
 ## API
 
@@ -78,14 +83,14 @@ JSON list of files stored in the server
 ```json
 [
  {
-    "size": 168454,
-    "hash": "e8f8f15bfefafae3a19d845b9d5c42dc2014206f",
-    "extension": "jpeg",
-    "type": "image/jpeg",
-    "name": "Veymont-aiguille_mg-k.jpg",
     "url": "http://upload.wikimedia.org/wikipedia/commons/d/d3/Veymont-aiguille_mg-k.jpg",
-    "mtime": "2014-04-09T11:36:05.145Z",
-    "_id": "sEHgLEvyYAkV94J8"
+    "name": "Veymont-aiguille_mg-k.jpg",
+    "id": "ElementaryPertinentWalleye",
+    "size": 168454,
+    "hash": "698baa587aef2a26bddd8461d6a4e132ae1dcbd5f58aa6e47c20bc703356a8ec",
+    "extension": "jpeg",
+    "type": "image/jpeg",    
+    "mtime": "2014-04-09T11:36:05.145Z"
   },...
 ]
 ```
@@ -96,9 +101,14 @@ Save on the server the provided file
 ```json
 {
   "name": "208T16-05E.jpg",
+  "id": "HauntingWholeEsok",
+  "size": 4700,
   "status": "ok",
-  "hash": "f2a4b8f39e757e59e89c03f1ec36ada979f75203",
-  "extension": "jpeg"
+  "hash": "7d15d97340aaf30e08baf92e9e3aa57b969f12540805be265dee44496f4b099f",
+  "extension": "png",
+  "type": "image/png",
+  "mtime": "2017-02-25T11:49:29.002Z",
+  "status": "ok"
 }
 ```
 
@@ -115,37 +125,57 @@ If the URL is not in the cache fetch and save the content of the url. Then retur
 Response example :
 ```json
 {
-  "status": "ok",
-  "hash": "70aa99ede90f16ffbb7cbb66c8bde1a4e8d37383",
-  "extension": "jpeg"
+  "url":"http://perdu.com",
+  "name":"perdu.com",
+  "id":"UnacceptableJoyfulLacewing",
+  "size":204,
+  "hash":"208e330c75ffd93949be0258660973bef8223917f036325020f3a4c51b4ca430",
+  "extension":"html",
+  "type":"text/html",
+  "mtime":"2017-02-25T11:52:58.522Z",
+  "status":"ok"
 }
 ```
 
 #### GET /remove/{hash}.{extension}
+#### GET /remove/{id}
 
 Remove the related files to the hash and the extension from the server.
 
-Example : ```GET /remove/70aa99ede90f16ffbb7cbb66c8bde1a4e8d37383.jpeg```
+Examples : 
+
+ * ```GET /remove/698baa587aef2a26bddd8461d6a4e132ae1dcbd5f58aa6e47c20bc703356a8ec.jpeg```
+ * ```GET /remove/ElementaryPertinentWalleye```
 
 #### GET /thumbnail/{hash}.{extension}
+#### GET /thumbnail/{id}
 
 Create and return a 128x128 thumbnail of the given file. If the format is not supported by GraphicsMagic, an error is returned.
 
-Example : ```GET /thumbnail/70aa99ede90f16ffbb7cbb66c8bde1a4e8d37383.jpeg``
+Examples :
+
+ * ```GET /thumbnail/698baa587aef2a26bddd8461d6a4e132ae1dcbd5f58aa6e47c20bc703356a8ec.jpeg```
+ * ```GET /thumbnail/ElementaryPertinentWalleye```
 
 #### GET /resize/{max_width}/{max_height}/{hash}.{extension}
+#### GET /resize/{max_width}/{max_height}/{id}
 
 Resize the given image. The image aspect ratio is conserved.
 
 The image format must be compatible with GraphicsMagick.
 
-Example : ```GET /resize/1280/720/70aa99ede90f16ffbb7cbb66c8bde1a4e8d37383.jpeg```
+Examples :
+
+ * ```GET /resize/1280/720/698baa587aef2a26bddd8461d6a4e132ae1dcbd5f58aa6e47c20bc703356a8ec.jpeg```
+ * ```GET /resize/1280/720/ElementaryPertinentWalleye```
 
 #### GET /resize/deform/{max_width}/{max_height}/{hash}.{extension}
+#### GET /resize/deform/{max_width}/{max_height}/{id}
 
 Same as resize but the ratio is not conserved.
 
 #### GET /convert/{format}/{height}/{hash}.{extension}
+#### GET /convert/{format}/{height}/{id}
 
 Resize the given video. The video aspect ratio is conserved.
 
@@ -154,7 +184,10 @@ The input video format must be compatible with your FFmpeg installation.
 Supported output formats : mp4 or webm
 Supported output sizes : 240, 480, 720, 1080
 
-Example : ```GET /convert/mp4/720/e7c7c984066753d5cc52e97f26f4f7892df67bacb.wmv```
+Examples :
+
+ * ```GET /convert/mp4/720/e7c7c984066753d5cc52e97f26f4f7892df67bacb.wmv```
+ * ```GET /convert/mp4/720/WiryRosyQueensnake```
 
 #### GET /thumbnail/{URL}
 
@@ -184,6 +217,7 @@ Supported output sizes : 240, 480, 720, 1080
 Example : ```GET /convert/webm/480/http://example.net/video.flv```
 
 #### GET /{hash}.{extension}
+#### GET /{id}
 
 Return the file :-)
 
@@ -198,9 +232,16 @@ Return the file :-)
  * [jQuery File Upload](http://blueimp.github.io/jQuery-File-Upload/)
  * [NeDB](https://github.com/louischatriot/nedb)
 
-## Configuration
 
-You can change the http listening port, the user-agent and the list of basic http authentification username/password couples in the config.json file.
+## Generation of Identifiers
+
+|Name|Description|Example|
+|----|-----------|-------|
+|[sillyid](https://github.com/Jamesford/SillyId) *(default)*|Generation of fun gfycat like identifiers, following the AdjectiveAdjectiveAnimal pattern.|`HairyOrangeGeckos`|
+|[shortid](https://github.com/dylang/shortid)|Short url-friendly identifiers.|`PPBqWA9`|
+|[human-readable](https://github.com/coolaj86/human-readable-ids-js)|Easy to spell identifiers, following the adjective-noun-# pattern.|`tricky-chicken-23`
+|[bronze](https://github.com/altusaero/bronze)|Collision-resistant ids for distributed systems.|`1482810226160-0-14210-example-1a`|
+|hash|Use the sha256 checksum as id.|`698baa587aef2a26bddd8461d6a4e132ae1dcbd5f58aa6e47c20bc703356a8ec`|
 
 ## Screenshot (work in progress)
 
@@ -208,7 +249,7 @@ You can change the http listening port, the user-agent and the list of basic htt
 
 ### Acknowledgements
 
-This library is developed in context of the [BRIDGE](http://www.bridgeproject.eu/en) project.
+Caracal is developed in context of the [BRIDGE](http://www.bridgeproject.eu/en) and [HUMANE](https://humane2020.eu/) European research projects.
 
 ### Licence
 

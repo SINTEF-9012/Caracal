@@ -70,10 +70,9 @@ var config = {
 	idsGeneration: process.env.IDS_GENERATION ? process.env.IDS_GENERATION : 'sillyid',
 };
 
-console.log(config.idsGeneration);
-
 // Generation of ids
 // The ids must never start by http: or https:
+// They should never have path characters (such as ., /, and \)
 var generateId = (hash) => hash;
 switch (config.idsGeneration) {
 	// The id is the SHA256 hash
@@ -152,6 +151,9 @@ app.use(express.static(path.resolve(uploadDatapath)));
 
 app.get('/files', (req, res) => {
 	filesDb.find({}).sort({mtime: -1}).exec((err, docs) => {
+		for (var i = 0, l = docs.length; i < l; ++i) {
+			delete docs[i]._id;
+		}
 		res.send(docs);
 	});
 });
@@ -174,6 +176,9 @@ app.get('/paginateFiles/:page', (req, res) => {
 	}
 
 	req.exec((err, docs) => {
+		for (var i = 0, l = docs.length; i < l; ++i) {
+			delete docs[i]._id;
+		}
 		var req = filesDb.count({}, (err, count) => {
 			res.json({
 				files: docs,
@@ -222,35 +227,32 @@ app.post('/upload', (req, res) => {
 			fs.exists(path, (exists) => {
 				if (exists) {
 					fs.unlink(f.path, () => {});
-					convertHashToId(f.hash, (beautifulId) => {
-						res.send({
-							name: f.name,
-							status: 'exists',
-							hash: f.hash,
-							id: beautifulId,
-							extension: extension,
-						});
+					filesDb.findOne({hash: f.hash, extension}, (err, doc) => {
+						if (doc) {
+							doc.status = 'exists';
+							delete doc._id;
+							res.send(doc);
+						} else {
+							res.status(500).send("File's database record doesn't exist.");
+						}
 					});
 				} else {
 
 					fs.rename(f.path, path, () => {
 						convertHashToId(f.hash, (beautifulId) => {
-							filesDb.insert({
+							var documentInfos = {
+								name: f.name,
+								id: beautifulId,
 								size: f.size,
 								hash: f.hash,
-								id: beautifulId,
 								extension: extension,
 								type: f.type,
-								name: f.name,
 								mtime: f.lastModifiedDate,
-							}, () => {
-								res.send({
-									name: f.name,
-									status: 'ok',
-									hash: f.hash,
-									id: beautifulId,
-									extension: extension,
-								});
+							};
+
+							filesDb.insert(documentInfos, () => {
+								documentInfos.status = 'ok';
+								res.send(documentInfos);
 							});
 						});
 					});
@@ -302,6 +304,22 @@ app.get(/^\/remove\/([a-fA-F0-9]{40,64}\.[a-zA-Z0-9]+)$/, (req, res) => {
 
 			res.send({numRemoved:numRemoved});
 		});
+	});
+});
+
+app.get(/^\/details\/([a-fA-F0-9]{40,64}\.[a-zA-Z0-9]+)$/, (req, res) => {
+	var path = req.params[0];
+	var hashAndExtension = path.split('.');
+	var hash = hashAndExtension[0],
+		extension = hashAndExtension[1];
+	
+	filesDb.findOne({hash, extension}, (err, doc) => {
+		if (doc) {
+			delete doc._id;
+			res.send(doc);
+		} else {
+			res.status(404).send("File not found, sorry");
+		}
 	});
 });
 
@@ -503,7 +521,8 @@ function fetchDistantFile(u2, res, callback, reserror) {
 			}
 
 			if (callback) {
-				callback(path, file.hash, file.extension);
+				delete file._id;
+				callback(path, file.hash, file.extension, file);
 			}
 		} else {
 
@@ -564,18 +583,23 @@ function fetchDistantFile(u2, res, callback, reserror) {
 						name = "untitled";
 					}
 
-					filesDb.insert({
-						size: size,
-						hash: hash,
-						extension: extension,
-						type: type,
-						name: name,
-						url: u2, 
-						mtime: new Date()
-					}, () => {
-						if (callback) {
-							callback(path, hash, extension);
-						}
+					convertHashToId(hash, (beautifulId) => {
+						var fileDetails = {
+							url: u2,
+							name: name,
+							id: beautifulId,
+							size: size,
+							hash: hash,
+							extension: extension,
+							type: type,
+							mtime: new Date(),
+						};
+
+						filesDb.insert(fileDetails, () => {
+							if (callback) {
+								callback(path, hash, extension, fileDetails);
+							}
+						});
 					});
 				});
 			}).on('error', (e) => {
@@ -633,8 +657,9 @@ app.get(/^\/https?:\/\/?.+$/, (req, res) => {
 });
 
 app.get(/^\/fetch\/https?:\/\/?.+$/, (req, res) => {
-	fetchDistantFile(req.url.slice(7), false, (filepath, hash, extension) => {
-		res.send({status: "ok", hash: hash, extension: extension});
+	fetchDistantFile(req.url.slice(7), false, (filepath, hash, extension, fileDetails) => {
+		fileDetails.status = "ok";
+		res.send(fileDetails);
 	}, res);
 });
 

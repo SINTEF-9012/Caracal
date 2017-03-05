@@ -224,7 +224,7 @@ Return the file :-)
 ## Behind
 
  * [NodeJs](http://nodejs.org/)
- * [GraphicsMagick](http://www.graphicsmagick.org/) with [gm](http://aheckmann.github.io/gm/)
+ * [GraphicsMagick](http://www.graphicsmagick.org/) or [ImageMagick](https://www.imagemagick.org/) with [gm](http://aheckmann.github.io/gm/)
  * [FFmpeg](https://www.ffmpeg.org/) with [node-fluent-ffmpeg](https://github.com/fluent-ffmpeg/node-fluent-ffmpeg)
  * [Express](http://expressjs.com/)
  * [Bootstrap](http://getbootstrap.com)

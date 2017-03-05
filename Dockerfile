@@ -1,14 +1,8 @@
 # From the official nodejs image, based on Debian Jessy
-FROM node:7
+FROM node:7-alpine
 
-# Add the jessy-backports repository, to install the true FFmpeg library
-RUN awk '$1 ~ "^deb" { $3 = $3 "-backports"; print; exit }' /etc/apt/sources.list > /etc/apt/sources.list.d/backports.list
-
-# Install ffmpeg and graphicsmagick
-RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
-    graphicsmagick ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+# Install ffmpeg and imagemagick
+RUN apk --no-cache add ffmpeg imagemagick git
 
 # Building
 RUN mkdir -p /usr/src/app
